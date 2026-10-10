@@ -17,9 +17,50 @@ import { ReviewsModule } from './modules/reviews/reviews.module';
 import { PlatformSettingsModule } from './modules/platform-settings/platform-settings.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import appConfig from './config/app.config';
+import dbConfig from './config/db.config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 
 @Module({
-  imports: [AuthModule, UsersModule, SellersModule, ShopsModule, CategoriesModule, ProductsModule, AddressesModule, CartModule, CheckoutModule, OrdersModule, PaymentsModule, PlatformFeesModule, ReviewsModule, PlatformSettingsModule, AuditModule, AdminModule],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env.development',
+      load: [appConfig, dbConfig],
+    }),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        // entities: [User],
+        type: 'postgres',
+        autoLoadEntities: configService.get('database.autoLoadEntities'),
+        synchronize: configService.get('database.synchronize'),
+        port: configService.get('database.port'),
+        host: configService.get('database.host'),
+        username: configService.get('database.user'),
+        password: configService.get('database.password'),
+        database: configService.get('database.name'),
+      }),
+    }),
+    AuthModule,
+    UsersModule,
+    SellersModule,
+    ShopsModule,
+    CategoriesModule,
+    ProductsModule,
+    AddressesModule,
+    CartModule,
+    CheckoutModule,
+    OrdersModule,
+    PaymentsModule,
+    PlatformFeesModule,
+    ReviewsModule,
+    PlatformSettingsModule,
+    AuditModule,
+    AdminModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })
