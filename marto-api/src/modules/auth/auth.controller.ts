@@ -9,7 +9,7 @@ import {
 import type { Response } from 'express';
 
 import { AuthService } from './providers/auth.service';
-import { LoginAdminDto } from '../admin/dto/login-admin.dto';
+import { AdminLoginDto } from './dto/login-admin-dto';
 import { Auth } from './decorators/auth.decorator';
 import { AuthType } from './enum/auth-type.enum';
 
@@ -21,7 +21,7 @@ export class AuthController {
   @Post('admin/login')
   @HttpCode(HttpStatus.OK)
   async loginAdmin(
-    @Body() dto: LoginAdminDto,
+    @Body() dto: AdminLoginDto,
     @Res({ passthrough: true }) response: Response,
   ) {
     return this.authService.loginAdmin(dto, response);
