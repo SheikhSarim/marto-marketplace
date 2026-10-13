@@ -4,7 +4,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 
 import { AppModule } from './app.module';
-// import { ApiLoggerInterceptor } from './common/interceptors/api-logger.interceptor';
+import { ApiLoggerInterceptor } from './common/interceptors/api-logger.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -67,7 +67,7 @@ async function bootstrap() {
    * The project requirements specify structured logging for
    * controller/API activity.
    */
-  // app.useGlobalInterceptors(new ApiLoggerInterceptor());
+  app.useGlobalInterceptors(new ApiLoggerInterceptor());
 
   /**
    * Swagger Configuration
