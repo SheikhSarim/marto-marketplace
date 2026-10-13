@@ -21,6 +21,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import appConfig from './config/app.config';
 import dbConfig from './config/db.config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { CustomersModule } from './modules/customers/customers.module';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
     PlatformSettingsModule,
     AuditModule,
     AdminModule,
+    CustomersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
