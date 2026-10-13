@@ -1,13 +1,18 @@
+
 import {
   Column,
   CreateDateColumn,
   Entity,
+  OneToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 
-import { UserRole } from 'src/common/enums/user-roles.enum';
+import { UserRole } from '../../../common/enums/user-roles.enum';
 import { UserStatus } from '../../../common/enums/user-status.enum';
+import { Customer } from 'src/modules/customers/entities/customer.entity';
+import { Seller } from '../../sellers/entities/seller.entity';
 
 @Entity({ name: 'users' })
 export class User {
@@ -24,10 +29,10 @@ export class User {
   @Column({
     type: 'varchar',
     length: 255,
-    select: false,
     nullable: true,
+    select: false,
   })
-  password?: string;
+  password?: string | null;
 
   @Column({
     type: 'enum',
@@ -52,7 +57,16 @@ export class User {
     type: 'timestamptz',
     nullable: true,
   })
-  last_login_at!: Date | null;
+  last_login_at?: Date | null;
+
+  @OneToOne(() => Customer, (customer) => customer.user)
+  customer?: Customer | null;
+
+  @OneToOne(() => Seller, (seller) => seller.user)
+  seller?: Seller | null;
+
+  // @OneToMany(() => AuditLog, (auditLog) => auditLog.user)
+  // auditLogs: AuditLog[];
 
   @CreateDateColumn({ type: 'timestamptz' })
   created_at!: Date;
