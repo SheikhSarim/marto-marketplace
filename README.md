@@ -83,7 +83,6 @@ The system has **four frontend interfaces** talking to **one backend REST API**.
 | Layer              | Technology                                                       |
 | ------------------ | ---------------------------------------------------------------- |
 | Frontend (planned) | ReactJS + Tailwind CSS                                           |
-| UI design          | Google Stitch screens (57 screens, see [§6.3](#63-screen-catalog)) |
 | Backend            | NestJS (TypeScript), modular monolith                            |
 | Database           | PostgreSQL + TypeORM (migrations)                                |
 | Auth               | JWT in HTTP-only cookies, RBAC                                   |
