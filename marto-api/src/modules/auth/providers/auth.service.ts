@@ -7,6 +7,10 @@ import { AdminLoginDto } from '../dto/login-admin-dto';
 import { UsersService } from 'src/modules/users/users.service';
 import { RefreshProvider } from './refresh.provider';
 
+import { RegisterSellerProvider } from './register-seller.provider';
+import { RegisterSellerDto } from '../dto/register-seller.dto';
+import type { UploadedImageFile } from '../../../common/uploads/upload-file.type';
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -16,12 +20,23 @@ export class AuthService {
     private readonly usersService: UsersService,
 
     private readonly refreshProvider: RefreshProvider,
+
+    private readonly registerSellerProvider: RegisterSellerProvider,
   ) {}
 
   async loginAdmin(dto: AdminLoginDto, response: Response) {
     return this.adminLoginProvider.adminlogin(dto, response);
   }
 
+  async registerSeller(
+    dto: RegisterSellerDto,
+    files: {
+      shop_logo?: UploadedImageFile[];
+      shop_cover_image?: UploadedImageFile[];
+    } = {},
+  ) {
+    return this.registerSellerProvider.register(dto, files);
+  }
   // Keep your existing methods here:
   // getSession()
   // refresh()
