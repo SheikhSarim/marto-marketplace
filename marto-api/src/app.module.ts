@@ -22,6 +22,7 @@ import appConfig from './config/app.config';
 import dbConfig from './config/db.config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CustomersModule } from './modules/customers/customers.module';
+import { MailModule } from './modules/mail/mail.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { CustomersModule } from './modules/customers/customers.module';
     AuditModule,
     AdminModule,
     CustomersModule,
+    MailModule,
   ],
   controllers: [AppController],
   providers: [AppService],
