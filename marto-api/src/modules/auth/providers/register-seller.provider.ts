@@ -1,4 +1,4 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, Logger } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import type { UploadedImageFile } from '../../../common/uploads/upload-file.type';
 
@@ -14,13 +14,17 @@ import {
   UploadedCloudinaryImage,
 } from '../../../common/uploads/cloudinary-upload.service';
 import { CLOUDINARY_FOLDERS } from 'src/common/uploads/path.constants';
+import { EmailVerificationService } from '../../mail/email-verification.service';
 
 @Injectable()
 export class RegisterSellerProvider {
+  private readonly logger = new Logger(RegisterSellerProvider.name);
+
   constructor(
     private readonly dataSource: DataSource,
     private readonly hashProvider: HashProvider,
     private readonly cloudinaryUploadService: CloudinaryUploadService,
+    private readonly emailVerificationService: EmailVerificationService,
   ) {}
 
   async register(
@@ -63,79 +67,103 @@ export class RegisterSellerProvider {
         : null;
       if (cover) uploadedImages.push(cover);
 
-      return await this.dataSource.transaction(async (manager) => {
-        const userRepository = manager.getRepository(User);
-        const sellerRepository = manager.getRepository(Seller);
-        const shopRepository = manager.getRepository(Shop);
+      const registrationResult = await this.dataSource.transaction(
+        async (manager) => {
+          const userRepository = manager.getRepository(User);
+          const sellerRepository = manager.getRepository(Seller);
+          const shopRepository = manager.getRepository(Shop);
 
-        const user = userRepository.create({
-          name: dto.name.trim(),
-          email,
-          password: hashedPassword,
-          role: UserRole.SELLER,
-        });
-        const savedUser = await userRepository.save(user);
+          const user = userRepository.create({
+            name: dto.name.trim(),
+            email,
+            password: hashedPassword,
+            role: UserRole.SELLER,
+          });
+          const savedUser = await userRepository.save(user);
 
-        const seller = sellerRepository.create({
-          user: savedUser,
-          business_name: dto.business_name.trim(),
-          business_email: dto.business_email.trim().toLowerCase(),
-          business_phone: dto.business_phone.trim(),
-          cnic: dto.cnic.trim(),
-          business_address: dto.business_address.trim(),
-          city: dto.city.trim(),
-          status: SellerStatus.PENDING,
-          approved: false,
-        });
-        const savedSeller = await sellerRepository.save(seller);
+          const seller = sellerRepository.create({
+            user: savedUser,
+            business_name: dto.business_name.trim(),
+            business_email: dto.business_email.trim().toLowerCase(),
+            business_phone: dto.business_phone.trim(),
+            cnic: dto.cnic.trim(),
+            business_address: dto.business_address.trim(),
+            city: dto.city.trim(),
+            status: SellerStatus.PENDING,
+            approved: false,
+          });
+          const savedSeller = await sellerRepository.save(seller);
 
-        // Keep the shop hidden until the seller application is approved.
-        const shop = shopRepository.create({
-          seller: savedSeller,
-          name: dto.shop_name.trim(),
-          description: dto.shop_description.trim(),
-          category_name: dto.shop_category.trim(),
-          logo_url: logo?.url ?? null,
-          cover_image_url: cover?.url ?? null,
-          address: dto.business_address.trim(),
-          city: dto.city.trim(),
-          contact_phone: dto.business_phone.trim(),
-          contact_email: dto.business_email.trim().toLowerCase(),
-          delivery_information: dto.delivery_information.trim(),
-          status: ShopStatus.DISABLED,
-        });
-        const savedShop = await shopRepository.save(shop);
+          // Keep the shop hidden until the seller application is approved.
+          const shop = shopRepository.create({
+            seller: savedSeller,
+            name: dto.shop_name.trim(),
+            description: dto.shop_description.trim(),
+            category_name: dto.shop_category.trim(),
+            logo_url: logo?.url ?? null,
+            cover_image_url: cover?.url ?? null,
+            address: dto.business_address.trim(),
+            city: dto.city.trim(),
+            contact_phone: dto.business_phone.trim(),
+            contact_email: dto.business_email.trim().toLowerCase(),
+            delivery_information: dto.delivery_information.trim(),
+            status: ShopStatus.DISABLED,
+          });
+          const savedShop = await shopRepository.save(shop);
 
-        return {
-          success: true,
-          message:
-            'Seller application submitted successfully. Seller and shop details are awaiting admin approval.',
-          data: {
-            user: {
-              id: savedUser.id,
-              name: savedUser.name,
-              email: savedUser.email,
-              role: savedUser.role,
+          return {
+            success: true,
+            message:
+              'Seller application submitted successfully. Please verify your email and wait for admin approval before logging in.',
+            data: {
+              user: {
+                id: savedUser.id,
+                name: savedUser.name,
+                email: savedUser.email,
+                role: savedUser.role,
+                is_email_verified: savedUser.is_email_verified,
+              },
+              application: {
+                id: savedSeller.id,
+                business_name: savedSeller.business_name,
+                status: savedSeller.status,
+                approved: savedSeller.approved,
+                created_at: savedSeller.created_at,
+              },
+              shop: {
+                id: savedShop.id,
+                name: savedShop.name,
+                category: savedShop.category_name,
+                logo_url: savedShop.logo_url,
+                cover_image_url: savedShop.cover_image_url,
+                status: savedShop.status,
+                created_at: savedShop.created_at,
+              },
+              email_verification: {
+                required: true,
+                email_sent: false,
+              },
             },
-            application: {
-              id: savedSeller.id,
-              business_name: savedSeller.business_name,
-              status: savedSeller.status,
-              approved: savedSeller.approved,
-              created_at: savedSeller.created_at,
-            },
-            shop: {
-              id: savedShop.id,
-              name: savedShop.name,
-              category: savedShop.category_name,
-              logo_url: savedShop.logo_url,
-              cover_image_url: savedShop.cover_image_url,
-              status: savedShop.status,
-              created_at: savedShop.created_at,
-            },
-          },
-        };
-      });
+          };
+        },
+      );
+
+      try {
+        await this.emailVerificationService.sendVerificationEmail(
+          registrationResult.data.user.id,
+        );
+        registrationResult.data.email_verification.email_sent = true;
+      } catch (error) {
+        // Registration is already committed. The status endpoint can resend a verification link.
+        this.logger.error(
+          'Seller application was created, but the verification email could not be sent.',
+          error instanceof Error ? error.stack : undefined,
+        );
+        registrationResult.message =
+          'Seller application submitted, but the verification email could not be sent. Use the application status page to request another link.';
+      }
+
+      return registrationResult;
     } catch (error) {
       // Prevent orphaned Cloudinary files if registration/database work fails.
       await Promise.all(

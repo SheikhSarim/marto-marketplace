@@ -5,6 +5,7 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.ad
 import { join } from 'node:path';
 
 import { MailService } from './mail.service';
+import { EmailVerificationService } from './email-verification.service';
 
 @Module({
   imports: [
@@ -41,7 +42,7 @@ import { MailService } from './mail.service';
     }),
   ],
 
-  providers: [MailService],
-  exports: [MailService],
+  providers: [MailService, EmailVerificationService],
+  exports: [MailService, EmailVerificationService],
 })
 export class MailModule {}
