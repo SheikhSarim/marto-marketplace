@@ -9,6 +9,9 @@ import { RefreshProvider } from './refresh.provider';
 
 import { RegisterSellerProvider } from './register-seller.provider';
 import { RegisterSellerDto } from '../dto/register-seller.dto';
+import { LoginSellerDto } from '../dto/login-seller.dto';
+import { SellerLoginProvider } from './seller-login.provider';
+import { EmailVerificationService } from '../../mail/email-verification.service';
 import type { UploadedImageFile } from '../../../common/uploads/upload-file.type';
 
 @Injectable()
@@ -22,10 +25,20 @@ export class AuthService {
     private readonly refreshProvider: RefreshProvider,
 
     private readonly registerSellerProvider: RegisterSellerProvider,
+    private readonly sellerLoginProvider: SellerLoginProvider,
+    private readonly emailVerificationService: EmailVerificationService,
   ) {}
 
   async loginAdmin(dto: AdminLoginDto, response: Response) {
     return this.adminLoginProvider.adminlogin(dto, response);
+  }
+
+  async loginSeller(dto: LoginSellerDto, response: Response) {
+    return this.sellerLoginProvider.login(dto, response);
+  }
+
+  async verifyEmail(token: string) {
+    return this.emailVerificationService.verifyEmail(token);
   }
 
   async registerSeller(
@@ -38,12 +51,11 @@ export class AuthService {
     return this.registerSellerProvider.register(dto, files);
   }
   // Keep your existing methods here:
-  // getSession()
-  // refresh()
-  // registerMember()
-  // registerMemberGoogle()
-  // registerAuthor()
-  // registerAuthorGoogle()
+  // getSession() ✔
+  // refresh() ✔
+  // registerCustomer()
+  // CustomerGoogle()
+
 
   refresh(request: Request, response: Response) {
     return this.refreshProvider.refresh(request, response);
