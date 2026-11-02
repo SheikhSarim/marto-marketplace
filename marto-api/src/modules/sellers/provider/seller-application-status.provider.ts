@@ -1,22 +1,19 @@
-import {
-  Injectable,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 
 import { Seller } from '../entities/seller.entity';
 import { MailService } from '../../mail/mail.service';
 import { SellerApplicationStatusDto } from '../dto/seller-application-status.dto';
+import { EmailVerificationService } from '../../mail/email-verification.service';
 
 @Injectable()
 export class SellerApplicationStatusProvider {
-  private readonly logger = new Logger(
-    SellerApplicationStatusProvider.name,
-  );
+  private readonly logger = new Logger(SellerApplicationStatusProvider.name);
 
   constructor(
     private readonly dataSource: DataSource,
     private readonly mailService: MailService,
+    private readonly emailVerificationService: EmailVerificationService,
   ) {}
 
   async sendStatus(dto: SellerApplicationStatusDto) {
@@ -36,6 +33,20 @@ export class SellerApplicationStatusProvider {
       .getOne();
 
     if (!seller) {
+      return genericResponse;
+    }
+
+    if (!seller.user.is_email_verified) {
+      try {
+        await this.emailVerificationService.sendVerificationEmail(
+          seller.user.id,
+        );
+      } catch (error) {
+        this.logger.error(
+          'Unable to send seller email-verification link from status lookup.',
+          error instanceof Error ? error.stack : undefined,
+        );
+      }
       return genericResponse;
     }
 
@@ -65,9 +76,6 @@ export class SellerApplicationStatusProvider {
         'Unable to process seller application status email.',
         error instanceof Error ? error.stack : undefined,
       );
-
-      // Keep the public response generic.
-      // A failed delivery must still be monitored internally.
     }
 
     return genericResponse;
