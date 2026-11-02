@@ -60,6 +60,9 @@ export class Seller {
   })
   status!: SellerStatus;
 
+  @Column({ type: 'text', nullable: true })
+  rejection_reason!: string | null;
+
   @Column({ default: false })
   approved!: boolean;
 
