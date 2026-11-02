@@ -24,10 +24,16 @@ import { UsersModule } from '../users/users.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { RefreshProvider } from './providers/refresh.provider';
 import { AdminLoginProvider } from './providers/admin-login.provider';
+import { RegisterSellerProvider } from './providers/register-seller.provider';
+import { UploadsModule } from '../../common/uploads/uploads.module';
+import { MailModule } from '../mail/mail.module';
+import { SellerLoginProvider } from './providers/seller-login.provider';
 
 @Module({
   imports: [
     UsersModule,
+    UploadsModule,
+    MailModule,
     // MemberModule,
     // AuthorModule,
     // GoogleAuthModule,
@@ -45,6 +51,8 @@ import { AdminLoginProvider } from './providers/admin-login.provider';
 
     // RegisterMemberProvider,
     // RegisterAuthorProvider,
+    RegisterSellerProvider,
+    SellerLoginProvider,
 
     GenerateTokenProvider,
     AccessTokenGuard,
