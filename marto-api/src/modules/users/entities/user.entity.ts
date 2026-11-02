@@ -1,4 +1,3 @@
-
 import {
   Column,
   CreateDateColumn,
@@ -18,6 +17,13 @@ import { Seller } from '../../sellers/entities/seller.entity';
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+
+  // Name field added
+  @Column({
+    type: 'varchar',
+    length: 255,
+  })
+  name!: string;
 
   @Column({
     type: 'varchar',
@@ -50,8 +56,25 @@ export class User {
   })
   status!: UserStatus;
 
-  @Column({ default: false })
+  // Existing email-verification flag; reused by seller onboarding.
+  @Column({ type: 'boolean', default: false })
   is_email_verified!: boolean;
+
+  // Only the SHA-256 hash is stored; the raw verification token is emailed once.
+  @Column({
+    type: 'varchar',
+    length: 64,
+    nullable: true,
+    select: false,
+  })
+  email_verification_token_hash?: string | null;
+
+  @Column({
+    type: 'timestamptz',
+    nullable: true,
+    select: false,
+  })
+  email_verification_token_expires_at?: Date | null;
 
   @Column({
     type: 'timestamptz',
