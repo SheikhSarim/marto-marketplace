@@ -34,6 +34,7 @@ import {
 import { RegisterCustomerDto } from './dto/register-customer.dto';
 import { EmailDto } from './dto/email.dto';
 import { LoginCustomerDto } from './dto/login-customer.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Controller('auth')
 // @Auth(AuthType.None)
@@ -265,5 +266,29 @@ export class AuthController {
   })
   async resendCustomerVerification(@Body() dto: EmailDto) {
     return this.authService.resendCustomerVerification(dto.email);
+  }
+
+  // ==========================================
+  // CUSTOMER PASSWORD MANAGEMENT
+  // ==========================================
+
+  @Auth(AuthType.None)
+  @Post('customer/forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Request a customer password reset link',
+  })
+  async forgotCustomerPassword(@Body() dto: EmailDto) {
+    return this.authService.forgotCustomerPassword(dto.email);
+  }
+
+  @Auth(AuthType.None)
+  @Post('customer/reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Reset customer password using reset token',
+  })
+  async resetCustomerPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetCustomerPassword(dto);
   }
 }

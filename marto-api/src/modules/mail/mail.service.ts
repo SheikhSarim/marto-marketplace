@@ -1,4 +1,3 @@
-
 import { Injectable, Logger } from '@nestjs/common';
 import { MailerService } from '@nestjs-modules/mailer';
 
@@ -134,5 +133,21 @@ export class MailService {
 
       throw error;
     }
+  }
+
+  async sendPasswordResetEmail(data: {
+    email: string;
+    name: string;
+    resetUrl: string;
+  }): Promise<void> {
+    await this.mailerService.sendMail({
+      to: data.email,
+      subject: 'Marto Marketplace - Reset Your Password',
+      template: 'customers/password-reset',
+      context: {
+        name: data.name,
+        resetUrl: data.resetUrl,
+      },
+    });
   }
 }

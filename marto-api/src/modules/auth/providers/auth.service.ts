@@ -20,10 +20,12 @@ import { AdminLoginDto } from '../dto/login-admin-dto';
 // Customer DTOs
 import { RegisterCustomerDto } from '../dto/register-customer.dto';
 import { LoginCustomerDto } from '../dto/login-customer.dto';
+import { ResetPasswordDto } from '../dto/reset-password.dto';
 
 // Customer Providers
 import { RegisterCustomerProvider } from './register-customer.provider';
 import { LoginCustomerProvider } from './customer-login.provider';
+import { CustomerPasswordProvider } from './customer-password.provider';
 import { CustomerEmailVerificationProvider } from './customer-email-verification.provider';
 
 @Injectable()
@@ -42,7 +44,7 @@ export class AuthService {
     // Customer providers
     private readonly registerCustomerProvider: RegisterCustomerProvider,
     private readonly loginCustomerProvider: LoginCustomerProvider,
-
+    private readonly customerPasswordProvider: CustomerPasswordProvider,
     private readonly customerEmailVerificationProvider: CustomerEmailVerificationProvider,
 
     // Email verification
@@ -98,6 +100,19 @@ export class AuthService {
   async verifyEmail(token: string) {
     return this.emailVerificationService.verifyEmail(token);
   }
+
+  // =========================
+  // CUSTOMER PASSWORD
+  // =========================
+
+  async forgotCustomerPassword(email: string) {
+    return this.customerPasswordProvider.forgotPassword(email);
+  }
+
+  async resetCustomerPassword(dto: ResetPasswordDto) {
+    return this.customerPasswordProvider.resetPassword(dto.token, dto.password);
+  }
+
   // =========================
   // SESSION & TOKEN MANAGEMENT
   // =========================

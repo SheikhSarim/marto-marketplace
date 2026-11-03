@@ -6,7 +6,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { AuthController } from './auth.controller';
 import { AuthService } from './providers/auth.service';
 
-// import { RegisterMemberProvider } from './providers/register-member.provider';
+
 import { GenerateTokenProvider } from './providers/generate-token.provider';
 import { HashProvider } from './providers/hash.provider';
 import { BcryptProvider } from './providers/bcrypt.provider';
@@ -17,10 +17,7 @@ import { RolesGuard } from './guards/roles.guard';
 
 import jwtConfig from './config/jwt.config';
 import { UsersModule } from '../users/users.module';
-// import { MemberModule } from '../member/member.module';
-// import { GoogleAuthModule } from './social/google.module';
-// import { AuthorModule } from '../author/author.module';
-// import { RegisterAuthorProvider } from './providers/register-author.provider';
+
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { RefreshProvider } from './providers/refresh.provider';
 import { AdminLoginProvider } from './providers/admin-login.provider';
@@ -30,6 +27,7 @@ import { MailModule } from '../mail/mail.module';
 import { SellerLoginProvider } from './providers/seller-login.provider';
 import { RegisterCustomerProvider } from './providers/register-customer.provider';
 import { LoginCustomerProvider } from './providers/customer-login.provider';
+import { CustomerPasswordProvider } from './providers/customer-password.provider';
 import { CustomerEmailVerificationProvider } from './providers/customer-email-verification.provider';
 
 @Module({
@@ -37,8 +35,6 @@ import { CustomerEmailVerificationProvider } from './providers/customer-email-ve
     UsersModule,
     UploadsModule,
     MailModule,
-    // MemberModule,
-    // AuthorModule,
     // GoogleAuthModule,
     ConfigModule.forFeature(jwtConfig),
     JwtModule.registerAsync(jwtConfig.asProvider()),
@@ -54,6 +50,7 @@ import { CustomerEmailVerificationProvider } from './providers/customer-email-ve
 
     RegisterCustomerProvider,
     LoginCustomerProvider,
+    CustomerPasswordProvider,
     CustomerEmailVerificationProvider,
 
     RegisterSellerProvider,
