@@ -14,6 +14,11 @@ import { SellerLoginProvider } from './seller-login.provider';
 import { EmailVerificationService } from '../../mail/email-verification.service';
 import type { UploadedImageFile } from '../../../common/uploads/upload-file.type';
 
+// Customer imports
+import { RegisterCustomerProvider } from './register-customer.provider';
+import { RegisterCustomerDto } from '../dto/register-customer.dto';
+
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -24,21 +29,30 @@ export class AuthService {
 
     private readonly refreshProvider: RefreshProvider,
 
+    // Seller providers
     private readonly registerSellerProvider: RegisterSellerProvider,
     private readonly sellerLoginProvider: SellerLoginProvider,
+
+    // Customer provider
+    private readonly registerCustomerProvider: RegisterCustomerProvider,
+
     private readonly emailVerificationService: EmailVerificationService,
   ) {}
+
+  // =========================
+  // ADMIN AUTH
+  // =========================
 
   async loginAdmin(dto: AdminLoginDto, response: Response) {
     return this.adminLoginProvider.adminlogin(dto, response);
   }
 
+  // =========================
+  // SELLER AUTH
+  // =========================
+
   async loginSeller(dto: LoginSellerDto, response: Response) {
     return this.sellerLoginProvider.login(dto, response);
-  }
-
-  async verifyEmail(token: string) {
-    return this.emailVerificationService.verifyEmail(token);
   }
 
   async registerSeller(
@@ -50,12 +64,28 @@ export class AuthService {
   ) {
     return this.registerSellerProvider.register(dto, files);
   }
-  // Keep your existing methods here:
-  // getSession() ✔
-  // refresh() ✔
-  // registerCustomer()
-  // CustomerGoogle()
 
+  // =========================
+  // CUSTOMER AUTH
+  // =========================
+
+  async registerCustomer(dto: RegisterCustomerDto) {
+    return this.registerCustomerProvider.register(dto);
+  }
+
+
+
+  // =========================
+  // EMAIL VERIFICATION
+  // =========================
+
+  async verifyEmail(token: string) {
+    return this.emailVerificationService.verifyEmail(token);
+  }
+
+  // =========================
+  // SESSION & TOKEN MANAGEMENT
+  // =========================
 
   refresh(request: Request, response: Response) {
     return this.refreshProvider.refresh(request, response);
@@ -67,6 +97,7 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException('Unauthorized');
     }
+
     return {
       success: true,
       data: {

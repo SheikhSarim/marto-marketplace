@@ -56,6 +56,14 @@ export class User {
   })
   status!: UserStatus;
 
+  @Column({
+    type: 'varchar',
+    length: 500,
+    nullable: false,
+    default: 'https://res.cloudinary.com/dk6pkgyak/image/upload/v1761949436/default-avatar_e2tpup.jpg',
+  })
+  profile_pic!: string;
+
   // Existing email-verification flag; reused by seller onboarding.
   @Column({ type: 'boolean', default: false })
   is_email_verified!: boolean;
@@ -81,6 +89,21 @@ export class User {
     nullable: true,
   })
   last_login_at?: Date | null;
+
+  @Column({
+    type: 'varchar',
+    length: 64,
+    nullable: true,
+    select: false,
+  })
+  password_reset_token_hash?: string | null;
+
+  @Column({
+    type: 'timestamptz',
+    nullable: true,
+    select: false,
+  })
+  password_reset_token_expires_at?: Date | null;
 
   @OneToOne(() => Customer, (customer) => customer.user)
   customer?: Customer | null;

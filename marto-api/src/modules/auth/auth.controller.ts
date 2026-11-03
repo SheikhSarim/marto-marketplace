@@ -31,6 +31,7 @@ import {
   ALLOWED_IMAGE_MIME_TYPES,
   IMAGE_UPLOAD_MAX_SIZE,
 } from '../../common/uploads/upload.constants';
+import { RegisterCustomerDto } from './dto/register-customer.dto';
 
 @Controller('auth')
 // @Auth(AuthType.None)
@@ -67,7 +68,7 @@ export class AuthController {
   ) {
     return this.authService.refresh(request, response);
   }
-  
+
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
@@ -227,4 +228,15 @@ export class AuthController {
   ) {
     return this.authService.registerSeller(dto, files);
   }
+
+  // CUSTOMER REGISTRATION
+  @Auth(AuthType.None)
+  @Post('register/customer')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Register a new customer account' })
+  async registerCustomer(@Body() dto: RegisterCustomerDto) {
+    return this.authService.registerCustomer(dto);
+  }
+
+ 
 }

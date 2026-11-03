@@ -1,3 +1,4 @@
+
 import {
   BadRequestException,
   Injectable,
@@ -25,15 +26,21 @@ export class EmailVerificationService {
 
   async sendVerificationEmail(userId: string): Promise<void> {
     const users = this.dataSource.getRepository(User);
-    const user = await users.findOne({ where: { id: userId } });
+
+    const user = await users.findOne({
+      where: { id: userId },
+    });
 
     if (!user) {
       throw new NotFoundException('User account was not found.');
     }
 
-    if (user.role !== UserRole.SELLER) {
+    if (
+      user.role !== UserRole.SELLER &&
+      user.role !== UserRole.CUSTOMER
+    ) {
       throw new BadRequestException(
-        'Email verification is only available for seller accounts.',
+        'Email verification is not available for this account type.',
       );
     }
 
@@ -42,19 +49,28 @@ export class EmailVerificationService {
     }
 
     const rawToken = randomBytes(32).toString('hex');
-    const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+
+    const tokenHash = createHash('sha256')
+      .update(rawToken)
+      .digest('hex');
+
     const expiresAt = new Date(
       Date.now() + VERIFICATION_TOKEN_TTL_HOURS * 60 * 60 * 1000,
     );
 
     user.email_verification_token_hash = tokenHash;
     user.email_verification_token_expires_at = expiresAt;
+
     await users.save(user);
 
     const configuredBaseUrl =
-      this.configService.get<string>('API_BASE_URL') ?? 'http://localhost:3001';
+      this.configService.get<string>('API_BASE_URL') ??
+      'http://localhost:3001';
+
     const baseUrl = configuredBaseUrl.replace(/\/+$/, '');
-    const verificationUrl = `${baseUrl}/auth/verify-email?token=${rawToken}`;
+
+    const verificationUrl =
+      `${baseUrl}/auth/verify-email?token=${rawToken}`;
 
     await this.mailService.sendEmailVerification({
       email: user.email,
@@ -64,7 +80,7 @@ export class EmailVerificationService {
     });
 
     this.logger.log(
-      `email-verification link generated for user ${user.id}.`,
+      `Verification email sent for ${user.role} user ${user.id}.`,
     );
   }
 
@@ -75,15 +91,21 @@ export class EmailVerificationService {
       );
     }
 
-    const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+    const tokenHash = createHash('sha256')
+      .update(rawToken)
+      .digest('hex');
+
     const userRepository = this.dataSource.getRepository(User);
+
     const user = await userRepository
       .createQueryBuilder('user')
       .addSelect([
         'user.email_verification_token_hash',
         'user.email_verification_token_expires_at',
       ])
-      .where('user.email_verification_token_hash = :tokenHash', { tokenHash })
+      .where('user.email_verification_token_hash = :tokenHash', {
+        tokenHash,
+      })
       .andWhere('user.email_verification_token_expires_at > :now', {
         now: new Date(),
       })
@@ -98,14 +120,17 @@ export class EmailVerificationService {
     user.is_email_verified = true;
     user.email_verification_token_hash = null;
     user.email_verification_token_expires_at = null;
+
     await userRepository.save(user);
+
+    const message =
+      user.role === UserRole.SELLER
+        ? 'Email verified successfully. Your seller application still requires admin approval before login.'
+        : 'Email verified successfully. You can now use your customer account.';
 
     return {
       success: true,
-      message:
-        'Email verified successfully. Your seller application still requires admin approval before login.',
+      message,
     };
   }
-
-  
 }

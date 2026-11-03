@@ -28,6 +28,7 @@ import { RegisterSellerProvider } from './providers/register-seller.provider';
 import { UploadsModule } from '../../common/uploads/uploads.module';
 import { MailModule } from '../mail/mail.module';
 import { SellerLoginProvider } from './providers/seller-login.provider';
+import { RegisterCustomerProvider } from './providers/register-customer.provider';
 
 @Module({
   imports: [
@@ -49,8 +50,8 @@ import { SellerLoginProvider } from './providers/seller-login.provider';
 
     AdminLoginProvider,
 
-    // RegisterMemberProvider,
-    // RegisterAuthorProvider,
+    RegisterCustomerProvider,
+
     RegisterSellerProvider,
     SellerLoginProvider,
 
