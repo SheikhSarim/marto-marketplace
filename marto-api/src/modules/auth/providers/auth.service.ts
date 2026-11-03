@@ -19,9 +19,11 @@ import { AdminLoginDto } from '../dto/login-admin-dto';
 
 // Customer DTOs
 import { RegisterCustomerDto } from '../dto/register-customer.dto';
+import { LoginCustomerDto } from '../dto/login-customer.dto';
 
 // Customer Providers
 import { RegisterCustomerProvider } from './register-customer.provider';
+import { LoginCustomerProvider } from './customer-login.provider';
 import { CustomerEmailVerificationProvider } from './customer-email-verification.provider';
 
 @Injectable()
@@ -39,6 +41,8 @@ export class AuthService {
 
     // Customer providers
     private readonly registerCustomerProvider: RegisterCustomerProvider,
+    private readonly loginCustomerProvider: LoginCustomerProvider,
+
     private readonly customerEmailVerificationProvider: CustomerEmailVerificationProvider,
 
     // Email verification
@@ -78,6 +82,14 @@ export class AuthService {
   async registerCustomer(dto: RegisterCustomerDto) {
     return this.registerCustomerProvider.register(dto);
   }
+
+  async loginCustomer(dto: LoginCustomerDto, response: Response) {
+    return this.loginCustomerProvider.login(dto, response);
+  }
+
+  // =========================
+  // CUSTOMER EMAIL VERIFICATION
+  // =========================
 
   async resendCustomerVerification(email: string) {
     return this.customerEmailVerificationProvider.resendVerification(email);

@@ -33,6 +33,7 @@ import {
 } from '../../common/uploads/upload.constants';
 import { RegisterCustomerDto } from './dto/register-customer.dto';
 import { EmailDto } from './dto/email.dto';
+import { LoginCustomerDto } from './dto/login-customer.dto';
 
 @Controller('auth')
 // @Auth(AuthType.None)
@@ -239,6 +240,17 @@ export class AuthController {
   @ApiOperation({ summary: 'Register a new customer account' })
   async registerCustomer(@Body() dto: RegisterCustomerDto) {
     return this.authService.registerCustomer(dto);
+  }
+
+  @Auth(AuthType.None)
+  @Post('customer/login')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Customer login' })
+  async loginCustomer(
+    @Body() dto: LoginCustomerDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    return this.authService.loginCustomer(dto, response);
   }
 
   // ==========================================
