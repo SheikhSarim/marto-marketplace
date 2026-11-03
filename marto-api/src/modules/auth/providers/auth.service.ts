@@ -3,7 +3,6 @@ import { Request, Response } from 'express';
 
 import { AdminLoginProvider } from './admin-login.provider';
 import { GenerateTokenProvider } from './generate-token.provider';
-import { AdminLoginDto } from '../dto/login-admin-dto';
 import { UsersService } from 'src/modules/users/users.service';
 import { RefreshProvider } from './refresh.provider';
 
@@ -11,13 +10,19 @@ import { RegisterSellerProvider } from './register-seller.provider';
 import { RegisterSellerDto } from '../dto/register-seller.dto';
 import { LoginSellerDto } from '../dto/login-seller.dto';
 import { SellerLoginProvider } from './seller-login.provider';
+
 import { EmailVerificationService } from '../../mail/email-verification.service';
 import type { UploadedImageFile } from '../../../common/uploads/upload-file.type';
 
-// Customer imports
-import { RegisterCustomerProvider } from './register-customer.provider';
+// Admin DTO
+import { AdminLoginDto } from '../dto/login-admin-dto';
+
+// Customer DTOs
 import { RegisterCustomerDto } from '../dto/register-customer.dto';
 
+// Customer Providers
+import { RegisterCustomerProvider } from './register-customer.provider';
+import { CustomerEmailVerificationProvider } from './customer-email-verification.provider';
 
 @Injectable()
 export class AuthService {
@@ -26,16 +31,17 @@ export class AuthService {
     private readonly generateTokenProvider: GenerateTokenProvider,
 
     private readonly usersService: UsersService,
-
     private readonly refreshProvider: RefreshProvider,
 
     // Seller providers
     private readonly registerSellerProvider: RegisterSellerProvider,
     private readonly sellerLoginProvider: SellerLoginProvider,
 
-    // Customer provider
+    // Customer providers
     private readonly registerCustomerProvider: RegisterCustomerProvider,
+    private readonly customerEmailVerificationProvider: CustomerEmailVerificationProvider,
 
+    // Email verification
     private readonly emailVerificationService: EmailVerificationService,
   ) {}
 
@@ -73,16 +79,13 @@ export class AuthService {
     return this.registerCustomerProvider.register(dto);
   }
 
-
-
-  // =========================
-  // EMAIL VERIFICATION
-  // =========================
+  async resendCustomerVerification(email: string) {
+    return this.customerEmailVerificationProvider.resendVerification(email);
+  }
 
   async verifyEmail(token: string) {
     return this.emailVerificationService.verifyEmail(token);
   }
-
   // =========================
   // SESSION & TOKEN MANAGEMENT
   // =========================

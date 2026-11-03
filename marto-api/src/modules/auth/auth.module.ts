@@ -29,6 +29,7 @@ import { UploadsModule } from '../../common/uploads/uploads.module';
 import { MailModule } from '../mail/mail.module';
 import { SellerLoginProvider } from './providers/seller-login.provider';
 import { RegisterCustomerProvider } from './providers/register-customer.provider';
+import { CustomerEmailVerificationProvider } from './providers/customer-email-verification.provider';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { RegisterCustomerProvider } from './providers/register-customer.provider
     AdminLoginProvider,
 
     RegisterCustomerProvider,
+    CustomerEmailVerificationProvider,
 
     RegisterSellerProvider,
     SellerLoginProvider,

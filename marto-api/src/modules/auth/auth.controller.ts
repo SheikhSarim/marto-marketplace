@@ -32,6 +32,7 @@ import {
   IMAGE_UPLOAD_MAX_SIZE,
 } from '../../common/uploads/upload.constants';
 import { RegisterCustomerDto } from './dto/register-customer.dto';
+import { EmailDto } from './dto/email.dto';
 
 @Controller('auth')
 // @Auth(AuthType.None)
@@ -228,8 +229,10 @@ export class AuthController {
   ) {
     return this.authService.registerSeller(dto, files);
   }
+  // ==========================================
+  // CUSTOMER AUTHENTICATION
+  // ==========================================
 
-  // CUSTOMER REGISTRATION
   @Auth(AuthType.None)
   @Post('register/customer')
   @HttpCode(HttpStatus.CREATED)
@@ -238,5 +241,17 @@ export class AuthController {
     return this.authService.registerCustomer(dto);
   }
 
- 
+  // ==========================================
+  // CUSTOMER EMAIL VERIFICATION
+  // ==========================================
+
+  @Auth(AuthType.None)
+  @Post('customer/resend-verification')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Resend customer email verification link',
+  })
+  async resendCustomerVerification(@Body() dto: EmailDto) {
+    return this.authService.resendCustomerVerification(dto.email);
+  }
 }
