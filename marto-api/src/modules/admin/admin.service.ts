@@ -1,4 +1,3 @@
-
 import {
   Injectable,
   ConflictException,
@@ -13,6 +12,8 @@ import { Shop, ShopStatus } from '../shops/entities/shop.entity';
 
 import { SellerStatus } from '../../common/enums/seller-status.enum';
 import { MailService } from '../mail/mail.service';
+import { AdminSellersQueryDto } from './dto/admin-sellers-query.dto';
+import { PaginationProvider } from 'src/common/providers/pagination.provider';
 
 @Injectable()
 export class AdminService {
@@ -21,21 +22,43 @@ export class AdminService {
   constructor(
     private readonly dataSource: DataSource,
     private readonly mailService: MailService,
+    private readonly paginationProvider: PaginationProvider,
   ) {}
 
   // GET ALL SELLERS
-  async listSellers() {
-    const sellers = await this.dataSource
+  async listSellers(query: AdminSellersQueryDto) {
+    const queryBuilder = this.dataSource
       .getRepository(Seller)
       .createQueryBuilder('seller')
       .innerJoinAndSelect('seller.user', 'user')
-      .leftJoinAndSelect('seller.shops', 'shop')
-      .orderBy('seller.created_at', 'DESC')
-      .getMany();
+      .leftJoinAndSelect('seller.shops', 'shop');
+
+    // Status filter
+    if (query.status) {
+      queryBuilder.andWhere('seller.status = :status', {
+        status: query.status,
+      });
+    }
+
+    const result = await this.paginationProvider.paginate(queryBuilder, query, {
+      searchFields: [
+        'seller.business_name',
+        'seller.business_email',
+        'user.name',
+        'user.email',
+      ],
+      allowedSortFields: [
+        'seller.created_at',
+        'seller.business_name',
+        'seller.business_email',
+        'seller.status',
+      ],
+      defaultSortField: 'seller.created_at',
+    });
 
     return {
       success: true,
-      data: sellers.map((seller) => ({
+      data: result.data.map((seller) => ({
         id: seller.id,
         business_name: seller.business_name,
         business_email: seller.business_email,
@@ -57,9 +80,9 @@ export class AdminService {
           status: shop.status,
         })),
       })),
+      meta: result.meta,
     };
   }
-
   // APPROVE SELLER APPLICATION
   async approveApplication(sellerId: string) {
     const result = await this.dataSource.transaction(async (manager) => {
@@ -72,9 +95,7 @@ export class AdminService {
       });
 
       if (!seller) {
-        throw new NotFoundException(
-          'Seller application was not found.',
-        );
+        throw new NotFoundException('Seller application was not found.');
       }
 
       if (seller.status !== SellerStatus.PENDING) {
@@ -135,9 +156,7 @@ export class AdminService {
 
     // Send approval email AFTER transaction commits
     try {
-      this.logger.log(
-        `Sending seller approval email to ${result.email.email}`,
-      );
+      this.logger.log(`Sending seller approval email to ${result.email.email}`);
 
       await this.mailService.sendSellerApprovalEmail(result.email);
 
@@ -165,9 +184,7 @@ export class AdminService {
       });
 
       if (!seller) {
-        throw new NotFoundException(
-          'Seller application was not found.',
-        );
+        throw new NotFoundException('Seller application was not found.');
       }
 
       if (seller.status !== SellerStatus.PENDING) {

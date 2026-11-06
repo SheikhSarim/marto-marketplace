@@ -1,4 +1,3 @@
-
 import {
   Controller,
   Get,
@@ -9,6 +8,7 @@ import {
   Patch,
   Body,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 
 import {
@@ -18,6 +18,7 @@ import {
   ApiTags,
   ApiBody,
   ApiBearerAuth,
+  ApiQuery,
 } from '@nestjs/swagger';
 
 import { AdminService } from './admin.service';
@@ -29,6 +30,9 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 
 import { RejectSellerDto } from './dto/reject-seller.dto';
+import { AdminSellersQueryDto } from './dto/admin-sellers-query.dto';
+
+import { SellerStatus } from '../../common/enums/seller-status.enum';
 
 @ApiTags('Admin')
 @ApiBearerAuth()
@@ -40,10 +44,58 @@ export class AdminController {
 
   // GET ALL SELLER APPLICATIONS
   @Get('sellers')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Get all seller applications',
+    summary: 'Get seller applications',
     description:
-      'Retrieves all seller applications with business details, user information, email verification status, associated shops, and application status. Accessible only to Super Admin.',
+      'Retrieves seller applications with associated user and shop details. Supports pagination, search, status filtering, and sorting. Accessible only to Super Admin.',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    example: 1,
+    description: 'Page number (default: 1).',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    example: 10,
+    description: 'Number of records per page (default: 10).',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    example: 'Marto',
+    description:
+      'Search by business name, business email, seller name, or seller email.',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: SellerStatus,
+    description: 'Filter seller applications by status.',
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    enum: [
+      'seller.created_at',
+      'seller.business_name',
+      'seller.business_email',
+      'seller.status',
+    ],
+    example: 'seller.created_at',
+    description: 'Field used to sort the results.',
+  })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: ['ASC', 'DESC'],
+    example: 'DESC',
+    description: 'Sorting direction (default: DESC).',
   })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -70,13 +122,25 @@ export class AdminController {
               {
                 id: '750e8400-e29b-41d4-a716-446655440000',
                 name: 'Marto Electronics Store',
-                status: 'PENDING',
+                status: 'DISABLED',
               },
             ],
           },
         ],
+        meta: {
+          total: 24,
+          page: 1,
+          limit: 10,
+          totalPages: 3,
+          hasNextPage: true,
+          hasPreviousPage: false,
+        },
       },
     },
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid pagination, sorting, or status query parameters.',
   })
   @ApiResponse({
     status: HttpStatus.UNAUTHORIZED,
@@ -86,8 +150,8 @@ export class AdminController {
     status: HttpStatus.FORBIDDEN,
     description: 'Only Super Admin can access seller applications.',
   })
-  listSellers() {
-    return this.adminService.listSellers();
+  listSellers(@Query() query: AdminSellersQueryDto) {
+    return this.adminService.listSellers(query);
   }
 
   // APPROVE SELLER APPLICATION
@@ -110,8 +174,7 @@ export class AdminController {
     schema: {
       example: {
         success: true,
-        message:
-          'Seller application approved and shop activated successfully.',
+        message: 'Seller application approved and shop activated successfully.',
         data: {
           seller: {
             id: '550e8400-e29b-41d4-a716-446655440000',
@@ -148,8 +211,7 @@ export class AdminController {
   })
   @ApiResponse({
     status: HttpStatus.CONFLICT,
-    description:
-      'Seller application is not pending or has no associated shop.',
+    description: 'Seller application is not pending or has no associated shop.',
   })
   async approveApplication(
     @Param('sellerId', new ParseUUIDPipe()) sellerId: string,
@@ -209,8 +271,7 @@ export class AdminController {
   })
   @ApiResponse({
     status: HttpStatus.BAD_REQUEST,
-    description:
-      'Invalid seller UUID or rejection reason validation failed.',
+    description: 'Invalid seller UUID or rejection reason validation failed.',
   })
   @ApiResponse({
     status: HttpStatus.UNAUTHORIZED,
