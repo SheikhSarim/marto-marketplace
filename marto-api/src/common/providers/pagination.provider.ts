@@ -8,6 +8,8 @@ interface PaginationOptions {
   searchFields?: string[];
   allowedSortFields?: string[];
   defaultSortField: string;
+  defaultSortOrder?: 'ASC' | 'DESC';
+  secondarySortField?: string;
 }
 
 @Injectable()
@@ -21,20 +23,20 @@ export class PaginationProvider {
     const limit = query.limit ?? 10;
     const skip = (page - 1) * limit;
 
-    // Search
     const search = query.search?.trim();
 
     if (search && options.searchFields?.length) {
+      const escapedSearch = search.replace(/[\\%_]/g, '\\$&');
+
       const searchConditions = options.searchFields
-        .map((field) => `${field} ILIKE :search`)
+        .map((field) => `${field} ILIKE :search ESCAPE '\\'`)
         .join(' OR ');
 
       queryBuilder.andWhere(`(${searchConditions})`, {
-        search: `%${search}%`,
+        search: `%${escapedSearch}%`,
       });
     }
 
-    // Sorting: only allow configured fields
     const allowedFields = options.allowedSortFields ?? [];
 
     const sortField =
@@ -42,11 +44,15 @@ export class PaginationProvider {
         ? query.sortBy
         : options.defaultSortField;
 
-    const sortOrder = query.sortOrder ?? 'DESC';
+    const sortOrder =
+      query.sortOrder ?? options.defaultSortOrder ?? 'DESC';
 
     queryBuilder.orderBy(sortField, sortOrder);
 
-    // Pagination
+    if (options.secondarySortField) {
+      queryBuilder.addOrderBy(options.secondarySortField, 'ASC');
+    }
+
     queryBuilder.skip(skip).take(limit);
 
     const [data, total] = await queryBuilder.getManyAndCount();
