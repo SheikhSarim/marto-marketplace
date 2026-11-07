@@ -1,6 +1,7 @@
 
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -14,12 +15,15 @@ import { Product } from '../products/entities/product.entity';
 import { Seller } from '../sellers/entities/seller.entity';
 
 import { CreateCategoryDto } from './dto/create-category.dto';
+import { UpdateCategoryDto } from './dto/update-category.dto';
 import { CategoryQueryDto } from './dto/category-query.dto';
+import { UpdateCategoryStatusDto } from './dto/update-category-status.dto';
 
 import { PaginationProvider } from '../../common/providers/pagination.provider';
 
 import { CategoryStatus } from '../../common/enums/category-status.enum';
 import { ProductStatus } from '../../common/enums/product-status.enum';
+import { DisabledBy } from '../../common/enums/disable-by.enum';
 import { SellerStatus } from '../../common/enums/seller-status.enum';
 
 import { ShopStatus } from '../shops/entities/shop.entity';
@@ -458,4 +462,65 @@ export class CategoriesService {
       ),
     };
   }
+
+  // UPDATE CATEGORY
+  async update(
+    userId: string,
+    categoryId: string,
+    dto: UpdateCategoryDto,
+  ) {
+    const seller = await this.getApprovedSeller(userId);
+
+    const category = await this.getOwnedCategory(
+      categoryId,
+      seller.id,
+    );
+
+    if (category.status === CategoryStatus.REMOVED) {
+      throw new ConflictException(
+        'Removed categories cannot be updated.',
+      );
+    }
+
+    if (dto.parent_id !== undefined) {
+      category.parent = await this.validateParent(
+        dto.parent_id,
+        seller.id,
+        category.id,
+      );
+    }
+
+    if (dto.name !== undefined) {
+      category.name = dto.name.trim();
+
+      // Slug intentionally remains unchanged after name update.
+    }
+
+    if (dto.description !== undefined) {
+      category.description = dto.description.trim();
+    }
+
+    if (dto.sort_order !== undefined) {
+      category.sort_order = dto.sort_order;
+    }
+
+    const saved = await this.categoryRepository.save(category);
+
+    const productsCount = await this.getProductsCount(
+      saved.id,
+    );
+
+    return {
+      success: true,
+      message: 'Category updated successfully.',
+      data: this.toCategoryResponse(
+        saved,
+        productsCount,
+      ),
+    };
+  }
+
+
+
+
 }

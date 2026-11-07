@@ -2,9 +2,11 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   Query,
   Req,
@@ -22,7 +24,9 @@ import {
 } from '@nestjs/swagger';
 
 import { CreateCategoryDto } from './dto/create-category.dto';
+import { UpdateCategoryDto } from './dto/update-category.dto';
 import { CategoryQueryDto } from './dto/category-query.dto';
+import { UpdateCategoryStatusDto } from './dto/update-category-status.dto';
 
 import { CategoryStatus } from '../../common/enums/category-status.enum';
 import { CategorySortBy } from '../../common/enums/category-sort-by.enum';
@@ -206,5 +210,48 @@ export class CategoriesController {
   ) {
     return this.categoriesService.findOne(req.user.id, id);
   }
+
+  // UPDATE CATEGORY
+  @Patch(':id')
+  @ApiOperation({
+    summary: 'Update a seller category',
+    description:
+      'Updates an owned category name, description, parent category or sort order. Parent category must belong to the same seller. Removed categories cannot be updated. Slug remains unchanged when the name is updated.',
+  })
+  @ApiParam({
+    name: 'id',
+    type: String,
+    format: 'uuid',
+    description: 'Category UUID.',
+  })
+  @ApiBody({ type: UpdateCategoryDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Category updated successfully.',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid category data or parent category.',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Seller account is not approved or has no active shop.',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Category not found.',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Removed category cannot be updated.',
+  })
+  update(
+    @Req() req: any,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateCategoryDto,
+  ) {
+    return this.categoriesService.update(req.user.id, id, dto);
+  }
+
 
 }
