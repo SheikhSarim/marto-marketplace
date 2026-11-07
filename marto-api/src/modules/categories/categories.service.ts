@@ -577,5 +577,39 @@ export class CategoriesService {
     };
   }
 
+  // REMOVE CATEGORY
+  async remove(userId: string, categoryId: string) {
+    const seller = await this.getApprovedSeller(userId);
 
+    const category = await this.getOwnedCategory(
+      categoryId,
+      seller.id,
+    );
+
+    if (category.status === CategoryStatus.REMOVED) {
+      throw new ConflictException(
+        'Category is already removed.',
+      );
+    }
+
+    const productsCount = await this.getProductsCount(
+      category.id,
+    );
+
+    if (productsCount > 0) {
+      throw new ConflictException(
+        'Category cannot be removed because it contains products.',
+      );
+    }
+
+    category.status = CategoryStatus.REMOVED;
+
+    await this.categoryRepository.save(category);
+
+    return {
+      success: true,
+      message: 'Category removed successfully.',
+      data: null,
+    };
+  }
 }

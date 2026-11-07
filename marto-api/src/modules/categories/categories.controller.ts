@@ -299,4 +299,44 @@ export class CategoriesController {
     );
   }
 
+  // DELETE CATEGORY
+  @Delete(':id')
+  @ApiOperation({
+    summary: 'Remove a seller category',
+    description:
+      'Soft removes an owned category by changing its status to REMOVED. Categories containing non-removed products cannot be removed.',
+  })
+  @ApiParam({
+    name: 'id',
+    type: String,
+    format: 'uuid',
+    description: 'Category UUID.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Category removed successfully.',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid category UUID.',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Seller account is not approved or has no active shop.',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Category not found.',
+  })
+  @ApiResponse({
+    status: 409,
+    description:
+      'Category already removed or contains non-removed products.',
+  })
+  remove(
+    @Req() req: any,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.categoriesService.remove(req.user.id, id);
+  }
 }
