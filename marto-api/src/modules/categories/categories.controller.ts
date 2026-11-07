@@ -1,7 +1,10 @@
+
 import {
   Body,
   Controller,
+  Get,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -10,11 +13,16 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiOperation,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 
 import { CreateCategoryDto } from './dto/create-category.dto';
+import { CategoryQueryDto } from './dto/category-query.dto';
+
+import { CategoryStatus } from '../../common/enums/category-status.enum';
+import { CategorySortBy } from '../../common/enums/category-sort-by.enum';
 import { UserRole } from '../../common/enums/user-roles.enum';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -62,5 +70,101 @@ export class CategoriesController {
     @Body() dto: CreateCategoryDto,
   ) {
     return this.categoriesService.create(req.user.id, dto);
+  }
+
+  // GET ALL SELLER CATEGORIES
+  @Get()
+  @ApiOperation({
+    summary: 'Get seller categories',
+    description:
+      'Returns paginated categories belonging only to the authenticated seller. Supports search, status, parent, creation date filters and sorting.',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    example: 1,
+    description: 'Page number (default: 1).',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    example: 10,
+    description: 'Records per page (default: 10, maximum: 100).',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    example: 'electronics',
+    description: 'Search category name or slug.',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: CategoryStatus,
+    description: 'Filter categories by status.',
+  })
+  @ApiQuery({
+    name: 'parent_id',
+    required: false,
+    type: String,
+    example: 'null',
+    description:
+      'Filter by parent category UUID. Use "null" to get root categories.',
+  })
+  @ApiQuery({
+    name: 'root',
+    required: false,
+    type: Boolean,
+    example: true,
+    description: 'When true, returns root categories only.',
+  })
+  @ApiQuery({
+    name: 'created_from',
+    required: false,
+    type: String,
+    example: '2026-01-01',
+    description: 'Filter categories created from this date.',
+  })
+  @ApiQuery({
+    name: 'created_to',
+    required: false,
+    type: String,
+    example: '2026-12-31',
+    description: 'Filter categories created up to this date.',
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    enum: CategorySortBy,
+    example: CategorySortBy.SORT_ORDER,
+    description: 'Field used to sort categories.',
+  })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: ['ASC', 'DESC'],
+    example: 'ASC',
+    description: 'Sorting direction.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Categories fetched successfully with pagination metadata.',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid query parameters or date range.',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Seller account is not approved or has no active shop.',
+  })
+  findAll(
+    @Req() req: any,
+    @Query() query: CategoryQueryDto,
+  ) {
+    return this.categoriesService.findAll(req.user.id, query);
   }
 }

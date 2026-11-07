@@ -1,20 +1,31 @@
+
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Not, Repository } from 'typeorm';
 
 import { Category } from './entities/category.entity';
+import { Product } from '../products/entities/product.entity';
 import { Seller } from '../sellers/entities/seller.entity';
 
 import { CreateCategoryDto } from './dto/create-category.dto';
+import { UpdateCategoryDto } from './dto/update-category.dto';
+import { CategoryQueryDto } from './dto/category-query.dto';
+import { UpdateCategoryStatusDto } from './dto/update-category-status.dto';
+
+import { PaginationProvider } from '../../common/providers/pagination.provider';
 
 import { CategoryStatus } from '../../common/enums/category-status.enum';
+import { ProductStatus } from '../../common/enums/product-status.enum';
+import { DisabledBy } from '../../common/enums/disable-by.enum';
 import { SellerStatus } from '../../common/enums/seller-status.enum';
+
 import { ShopStatus } from '../shops/entities/shop.entity';
 
 @Injectable()
@@ -23,8 +34,13 @@ export class CategoriesService {
     @InjectRepository(Category)
     private readonly categoryRepository: Repository<Category>,
 
+    @InjectRepository(Product)
+    private readonly productRepository: Repository<Product>,
+
     @InjectRepository(Seller)
     private readonly sellerRepository: Repository<Seller>,
+
+    private readonly paginationProvider: PaginationProvider,
   ) {}
 
   // Convert category name into URL-friendly slug.
@@ -90,6 +106,16 @@ export class CategoriesService {
       created_at: category.created_at,
       updated_at: category.updated_at,
     };
+  }
+
+  // Count all non-removed products belonging to a category.
+  private async getProductsCount(categoryId: string): Promise<number> {
+    return this.productRepository.count({
+      where: {
+        category: { id: categoryId },
+        status: Not(ProductStatus.REMOVED),
+      },
+    });
   }
 
   // Verify seller approval and active shop.
@@ -163,6 +189,29 @@ export class CategoriesService {
     }
 
     return slug;
+  }
+
+  // Find a category that belongs to the authenticated seller.
+  private async getOwnedCategory(
+    categoryId: string,
+    sellerId: string,
+  ): Promise<Category> {
+    const category = await this.categoryRepository.findOne({
+      where: {
+        id: categoryId,
+        seller: { id: sellerId },
+      },
+      relations: {
+        seller: true,
+        parent: true,
+      },
+    });
+
+    if (!category) {
+      throw new NotFoundException('Category not found.');
+    }
+
+    return category;
   }
 
   // Validate parent category and prevent circular hierarchy.
@@ -275,6 +324,105 @@ export class CategoriesService {
       success: true,
       message: 'Category created successfully.',
       data: this.toCategoryResponse(saved, 0),
+    };
+  }
+
+  // GET ALL CATEGORIES OF AUTHENTICATED SELLER
+  async findAll(userId: string, query: CategoryQueryDto) {
+    const seller = await this.getApprovedSeller(userId);
+
+    if (
+      query.created_from &&
+      query.created_to &&
+      new Date(query.created_from) > new Date(query.created_to)
+    ) {
+      throw new BadRequestException(
+        'created_from cannot be later than created_to.',
+      );
+    }
+
+    const qb = this.categoryRepository
+      .createQueryBuilder('category')
+      .leftJoinAndSelect('category.seller', 'seller')
+      .leftJoinAndSelect('category.parent', 'parent')
+      .where('category.seller_id = :sellerId', {
+        sellerId: seller.id,
+      });
+
+    // REMOVED categories are hidden by default.
+    if (query.status) {
+      qb.andWhere('category.status = :status', {
+        status: query.status,
+      });
+    } else {
+      qb.andWhere('category.status != :removed', {
+        removed: CategoryStatus.REMOVED,
+      });
+    }
+
+    // Filter root categories or a specific parent.
+    if (query.root === true || query.parent_id === 'null') {
+      qb.andWhere('category.parent_id IS NULL');
+    } else if (query.parent_id) {
+      qb.andWhere('category.parent_id = :parentId', {
+        parentId: query.parent_id,
+      });
+    }
+
+    // Creation date filters.
+    if (query.created_from) {
+      qb.andWhere('category.created_at >= :createdFrom', {
+        createdFrom: query.created_from,
+      });
+    }
+
+    if (query.created_to) {
+      qb.andWhere('category.created_at <= :createdTo', {
+        createdTo: query.created_to,
+      });
+    }
+
+    // Count non-removed products without N+1 queries.
+    qb.loadRelationCountAndMap(
+      'category.products_count',
+      'category.products',
+      'product',
+      (productQuery) =>
+        productQuery.andWhere(
+          'product.status != :productRemoved',
+          {
+            productRemoved: ProductStatus.REMOVED,
+          },
+        ),
+    );
+
+    const result = await this.paginationProvider.paginate(
+      qb,
+      query,
+      {
+        searchFields: [
+          'category.name',
+          'category.slug',
+        ],
+        allowedSortFields: [
+          'category.sort_order',
+          'category.name',
+          'category.created_at',
+          'category.updated_at',
+        ],
+        defaultSortField: 'category.sort_order',
+        defaultSortOrder: 'ASC',
+        secondarySortField: 'category.id',
+      },
+    );
+
+    return {
+      success: true,
+      message: 'Categories fetched successfully.',
+      data: result.data.map((category) =>
+        this.toCategoryResponse(category),
+      ),
+      meta: result.meta,
     };
   }
 }
