@@ -253,5 +253,50 @@ export class CategoriesController {
     return this.categoriesService.update(req.user.id, id, dto);
   }
 
+  // UPDATE CATEGORY STATUS
+  @Patch(':id/status')
+  @ApiOperation({
+    summary: 'Enable or disable a seller category',
+    description:
+      'Changes an owned category status to ACTIVE or DISABLED. Sellers cannot activate categories disabled by admin. REMOVED status must be handled through the DELETE endpoint.',
+  })
+  @ApiParam({
+    name: 'id',
+    type: String,
+    format: 'uuid',
+    description: 'Category UUID.',
+  })
+  @ApiBody({ type: UpdateCategoryStatusDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Category status updated successfully.',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid status. REMOVED is not allowed here.',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Category was disabled by admin and cannot be activated by seller.',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Category not found.',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Removed category cannot be activated or disabled.',
+  })
+  updateStatus(
+    @Req() req: any,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateCategoryStatusDto,
+  ) {
+    return this.categoriesService.updateStatus(
+      req.user.id,
+      id,
+      dto,
+    );
+  }
 
 }

@@ -520,7 +520,62 @@ export class CategoriesService {
     };
   }
 
+  // UPDATE CATEGORY STATUS
+  async updateStatus(
+    userId: string,
+    categoryId: string,
+    dto: UpdateCategoryStatusDto,
+  ) {
+    const seller = await this.getApprovedSeller(userId);
 
+    const category = await this.getOwnedCategory(
+      categoryId,
+      seller.id,
+    );
+
+    if (category.status === CategoryStatus.REMOVED) {
+      throw new ConflictException(
+        'Removed categories cannot be activated or disabled.',
+      );
+    }
+
+    if (dto.status === CategoryStatus.REMOVED) {
+      throw new BadRequestException(
+        'Use the DELETE endpoint to remove a category.',
+      );
+    }
+
+    if (
+      dto.status === CategoryStatus.ACTIVE &&
+      category.disabled_by === DisabledBy.ADMIN
+    ) {
+      throw new ForbiddenException(
+        'This category was disabled by admin and cannot be activated by seller.',
+      );
+    }
+
+    category.status = dto.status;
+
+    category.disabled_by =
+      dto.status === CategoryStatus.DISABLED
+        ? DisabledBy.SELLER
+        : null;
+
+    const saved = await this.categoryRepository.save(category);
+
+    const productsCount = await this.getProductsCount(
+      saved.id,
+    );
+
+    return {
+      success: true,
+      message: 'Category status updated successfully.',
+      data: this.toCategoryResponse(
+        saved,
+        productsCount,
+      ),
+    };
+  }
 
 
 }
