@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { RequestMethod, ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 
@@ -8,7 +8,17 @@ import { ApiLoggerInterceptor } from './common/interceptors/api-logger.intercept
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-
+  /**
+   * Global API Prefix
+   * Saare controllers/endpoints ab automatically /api/v1/ se start honge.
+   * Swagger ke routes ko yahan exclude kiya hai taake woh /api aur /api-json par hi rahen.
+   */
+  app.setGlobalPrefix('api/v1', {
+    exclude: [
+      { path: 'api', method: RequestMethod.ALL },
+      { path: 'api-json', method: RequestMethod.ALL },
+    ],
+  });
   /**
    * Cookie Parser
    * Allows access to cookies through req.cookies.
