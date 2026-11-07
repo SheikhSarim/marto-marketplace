@@ -3,6 +3,8 @@ import {
   Body,
   Controller,
   Get,
+  Param,
+  ParseUUIDPipe,
   Post,
   Query,
   Req,
@@ -13,6 +15,7 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiOperation,
+  ApiParam,
   ApiQuery,
   ApiResponse,
   ApiTags,
@@ -167,4 +170,41 @@ export class CategoriesController {
   ) {
     return this.categoriesService.findAll(req.user.id, query);
   }
+
+  // GET SINGLE SELLER CATEGORY
+  @Get(':id')
+  @ApiOperation({
+    summary: 'Get category details',
+    description:
+      'Returns details of a category belonging to the authenticated seller, including parent, children and non-removed products count.',
+  })
+  @ApiParam({
+    name: 'id',
+    type: String,
+    format: 'uuid',
+    description: 'Category UUID.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Category fetched successfully.',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid category UUID.',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Seller account is not approved or has no active shop.',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Category not found.',
+  })
+  findOne(
+    @Req() req: any,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.categoriesService.findOne(req.user.id, id);
+  }
+
 }

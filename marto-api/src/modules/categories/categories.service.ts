@@ -1,7 +1,6 @@
 
 import {
   BadRequestException,
-  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -15,15 +14,12 @@ import { Product } from '../products/entities/product.entity';
 import { Seller } from '../sellers/entities/seller.entity';
 
 import { CreateCategoryDto } from './dto/create-category.dto';
-import { UpdateCategoryDto } from './dto/update-category.dto';
 import { CategoryQueryDto } from './dto/category-query.dto';
-import { UpdateCategoryStatusDto } from './dto/update-category-status.dto';
 
 import { PaginationProvider } from '../../common/providers/pagination.provider';
 
 import { CategoryStatus } from '../../common/enums/category-status.enum';
 import { ProductStatus } from '../../common/enums/product-status.enum';
-import { DisabledBy } from '../../common/enums/disable-by.enum';
 import { SellerStatus } from '../../common/enums/seller-status.enum';
 
 import { ShopStatus } from '../shops/entities/shop.entity';
@@ -423,6 +419,43 @@ export class CategoriesService {
         this.toCategoryResponse(category),
       ),
       meta: result.meta,
+    };
+  }
+
+  // GET SINGLE CATEGORY OF AUTHENTICATED SELLER
+  async findOne(userId: string, categoryId: string) {
+    const seller = await this.getApprovedSeller(userId);
+
+    const category = await this.categoryRepository.findOne({
+      where: {
+        id: categoryId,
+        seller: { id: seller.id },
+      },
+      relations: {
+        seller: true,
+        parent: true,
+        children: true,
+      },
+    });
+
+    if (
+      !category ||
+      category.status === CategoryStatus.REMOVED
+    ) {
+      throw new NotFoundException('Category not found.');
+    }
+
+    const productsCount = await this.getProductsCount(
+      category.id,
+    );
+
+    return {
+      success: true,
+      message: 'Category fetched successfully.',
+      data: this.toCategoryResponse(
+        category,
+        productsCount,
+      ),
     };
   }
 }
