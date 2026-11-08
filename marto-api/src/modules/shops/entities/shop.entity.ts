@@ -1,15 +1,18 @@
 import {
-  Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, JoinColumn,
-  CreateDateColumn, UpdateDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  OneToMany,
+  JoinColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
 } from 'typeorm';
+
 import { Seller } from '../../sellers/entities/seller.entity';
 import { Product } from '../../products/entities/product.entity';
 import { Order } from '../../orders/entities/order.entity';
-
-export enum ShopStatus {
-  ACTIVE = 'ACTIVE',
-  DISABLED = 'DISABLED',
-}
+import { ShopStatus } from 'src/common/enums/shop-status.enum';
 
 @Entity({ name: 'shops' })
 export class Shop {
@@ -29,7 +32,6 @@ export class Shop {
   @Column({ type: 'text', nullable: true })
   description?: string | null;
 
-  // Broad category selected during seller onboarding (separate from product categories).
   @Column({ type: 'varchar', length: 120, nullable: true })
   category_name?: string | null;
 
@@ -51,10 +53,25 @@ export class Shop {
   @Column({ type: 'varchar', length: 255, nullable: true })
   contact_email?: string | null;
 
+  @Column({ type: 'jsonb', nullable: true })
+  opening_hours?: Record<
+    string,
+    {
+      open: string;
+      close: string;
+      is_closed?: boolean;
+    }
+  > | null;
+
   @Column({ type: 'text', nullable: true })
   delivery_information?: string | null;
 
-  @Column({ type: 'enum', enum: ShopStatus, enumName: 'shop_status_enum', default: ShopStatus.ACTIVE })
+  @Column({
+    type: 'enum',
+    enum: ShopStatus,
+    enumName: 'shop_status_enum',
+    default: ShopStatus.ACTIVE,
+  })
   status!: ShopStatus;
 
   @OneToMany(() => Product, (product) => product.shop)
