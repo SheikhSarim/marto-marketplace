@@ -8,7 +8,9 @@ import {
 import { DataSource } from 'typeorm';
 
 import { Seller } from '../sellers/entities/seller.entity';
-import { Shop, ShopStatus } from '../shops/entities/shop.entity';
+import { Shop } from '../shops/entities/shop.entity';
+
+import { ShopStatus } from 'src/common/enums/shop-status.enum';
 
 import { SellerStatus } from '../../common/enums/seller-status.enum';
 import { MailService } from '../mail/mail.service';

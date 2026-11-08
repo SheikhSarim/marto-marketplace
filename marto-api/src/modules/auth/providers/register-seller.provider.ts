@@ -6,7 +6,8 @@ import { RegisterSellerDto } from '../dto/register-seller.dto';
 import { HashProvider } from './hash.provider';
 import { User } from '../../users/entities/user.entity';
 import { Seller } from '../../sellers/entities/seller.entity';
-import { Shop, ShopStatus } from '../../shops/entities/shop.entity';
+import { Shop } from '../../shops/entities/shop.entity';
+import { ShopStatus } from 'src/common/enums/shop-status.enum';
 import { UserRole } from '../../../common/enums/user-roles.enum';
 import { SellerStatus } from '../../../common/enums/seller-status.enum';
 import {
