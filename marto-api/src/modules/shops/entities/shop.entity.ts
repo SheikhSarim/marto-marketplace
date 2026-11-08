@@ -42,6 +42,12 @@ export class Shop {
   cover_image_url?: string | null;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
+  logo_public_id?: string | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  cover_image_public_id?: string | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
   address?: string | null;
 
   @Column({ type: 'varchar', length: 100, nullable: true })
