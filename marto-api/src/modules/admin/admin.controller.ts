@@ -33,6 +33,8 @@ import { RejectSellerDto } from './dto/reject-seller.dto';
 import { AdminSellersQueryDto } from './dto/admin-sellers-query.dto';
 
 import { SellerStatus } from '../../common/enums/seller-status.enum';
+import { AdminShopsQueryDto } from './dto/admin-shops-query.dto';
+import { ShopStatus } from 'src/common/enums/shop-status.enum';
 
 @ApiTags('Admin')
 @ApiBearerAuth()
@@ -295,4 +297,128 @@ export class AdminController {
   ) {
     return this.adminService.rejectApplication(sellerId, dto.reason);
   }
+
+  // LIST ALL SHOPS
+  @Get('shops')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Get all shops',
+    description:
+      'Retrieves all marketplace shops with associated seller and user details. Supports pagination, search, status filtering, and sorting. Accessible only to Super Admin.',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    example: 1,
+    description: 'Page number (default: 1).',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    example: 10,
+    description: 'Number of records per page (default: 10).',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    example: 'Marto',
+    description:
+      'Search shops by shop name, seller business name, business email, or seller email.',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ShopStatus,
+    description:
+      'Filter shops by status: ACTIVE, INACTIVE, SUSPENDED, or DISABLED.',
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    enum: ['shop.created_at', 'shop.name', 'shop.status'],
+    example: 'shop.created_at',
+    description: 'Field used to sort the results.',
+  })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: ['ASC', 'DESC'],
+    example: 'DESC',
+    description: 'Sorting direction (default: DESC).',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Shops retrieved successfully.',
+    schema: {
+      example: {
+        success: true,
+        data: [
+          {
+            id: '750e8400-e29b-41d4-a716-446655440000',
+            name: 'Marto Electronics Store',
+            status: 'ACTIVE',
+            created_at: '2026-10-20T10:30:00.000Z',
+            seller: {
+              id: '550e8400-e29b-41d4-a716-446655440000',
+              business_name: 'Marto Electronics',
+              business_email: 'business@example.com',
+              status: 'APPROVED',
+              user: {
+                id: '650e8400-e29b-41d4-a716-446655440000',
+                name: 'Ali Khan',
+                email: 'ali@example.com',
+                email_verified: true,
+              },
+            },
+          },
+          {
+            id: '850e8400-e29b-41d4-a716-446655440000',
+            name: 'Marto Accessories',
+            status: 'SUSPENDED',
+            created_at: '2026-10-19T09:15:00.000Z',
+            seller: {
+              id: '950e8400-e29b-41d4-a716-446655440000',
+              business_name: 'Marto Electronics',
+              business_email: 'business@example.com',
+              status: 'APPROVED',
+              user: {
+                id: '650e8400-e29b-41d4-a716-446655440000',
+                name: 'Ali Khan',
+                email: 'ali@example.com',
+                email_verified: true,
+              },
+            },
+          },
+        ],
+        meta: {
+          total: 24,
+          page: 1,
+          limit: 10,
+          totalPages: 3,
+          hasNextPage: true,
+          hasPreviousPage: false,
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid pagination, sorting, or status query parameters.',
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Authentication token is missing or invalid.',
+  })
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: 'Only Super Admin can access shops.',
+  })
+  async listShops(@Query() query: AdminShopsQueryDto) {
+    return this.adminService.listShops(query);
+  }
+
+
 }

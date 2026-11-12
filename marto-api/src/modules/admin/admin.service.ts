@@ -17,6 +17,8 @@ import { MailService } from '../mail/mail.service';
 import { AdminSellersQueryDto } from './dto/admin-sellers-query.dto';
 import { PaginationProvider } from 'src/common/providers/pagination.provider';
 
+import { AdminShopsQueryDto } from './dto/admin-shops-query.dto';
+
 @Injectable()
 export class AdminService {
   private readonly logger = new Logger(AdminService.name);
@@ -246,4 +248,68 @@ export class AdminService {
 
     return result.response;
   }
+
+  //====================================================//
+  //SHOP MANAGEMENT
+  //====================================================//
+
+  // LIST ALL SHOPS
+  async listShops(query: AdminShopsQueryDto) {
+    const shopRepository = this.dataSource.getRepository(Shop);
+
+    const queryBuilder = shopRepository
+      .createQueryBuilder('shop')
+      .innerJoinAndSelect('shop.seller', 'seller')
+      .innerJoinAndSelect('seller.user', 'user');
+
+    if (query.status) {
+      queryBuilder.andWhere('shop.status = :status', {
+        status: query.status,
+      });
+    }
+
+    const result = await this.paginationProvider.paginate(queryBuilder, query, {
+      searchFields: [
+        'shop.name',
+        'shop.city',
+        'seller.business_name',
+        'seller.business_email',
+        'user.name',
+        'user.email',
+      ],
+      allowedSortFields: [
+        'shop.created_at',
+        'shop.name',
+        'shop.city',
+        'shop.status',
+      ],
+      defaultSortField: 'shop.created_at',
+      secondarySortField: 'shop.id',
+    });
+
+    this.logger.log('Admin fetched shops listing.');
+
+    return {
+      success: true,
+      data: result.data.map((shop) => ({
+        id: shop.id,
+        name: shop.name,
+        logo_url: shop.logo_url,
+        city: shop.city,
+        status: shop.status,
+        created_at: shop.created_at,
+        disabled_by: shop.disabled_by,
+        seller: {
+          id: shop.seller.id,
+          business_name: shop.seller.business_name,
+          business_email: shop.seller.business_email,
+          name: shop.seller.user.name,
+          email: shop.seller.user.email,
+        },
+      })),
+      meta: result.meta,
+    };
+  }
+
+
 }
