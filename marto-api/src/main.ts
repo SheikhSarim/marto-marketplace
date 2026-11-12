@@ -36,6 +36,7 @@ async function bootstrap() {
       'http://localhost:5173',
       'http://127.0.0.1:3000',
       'http://127.0.0.1:3001',
+      'http://127.0.0.1:5500',
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -87,6 +88,12 @@ async function bootstrap() {
       `
 Marto Marketplace Backend REST API
 
+Frontend Application:
+[Open frontend](http://localhost:3000)
+
+Backend API:
+http://localhost:3001
+
 A scalable multi-vendor e-commerce marketplace backend built with
 NestJS, PostgreSQL and TypeORM.
 
@@ -128,6 +135,7 @@ Business Rules:
       'https://marto-online.com',
       '',
     )
+    // .addServer('http://localhost:3001', 'Local Development')
     .addBearerAuth(
       {
         type: 'http',
