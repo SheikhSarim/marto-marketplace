@@ -13,6 +13,7 @@ import { Seller } from '../../sellers/entities/seller.entity';
 import { Product } from '../../products/entities/product.entity';
 import { Order } from '../../orders/entities/order.entity';
 import { ShopStatus } from 'src/common/enums/shop-status.enum';
+import { DisabledBy } from 'src/common/enums/disable-by.enum';
 
 @Entity({ name: 'shops' })
 export class Shop {
@@ -79,6 +80,14 @@ export class Shop {
     default: ShopStatus.ACTIVE,
   })
   status!: ShopStatus;
+
+  @Column({
+    type: 'enum',
+    enum: DisabledBy,
+    enumName: 'shop_disabled_by_enum',
+    nullable: true,
+  })
+  disabled_by?: DisabledBy | null;
 
   @OneToMany(() => Product, (product) => product.shop)
   products!: Product[];

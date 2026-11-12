@@ -29,6 +29,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../../common/enums/user-roles.enum';
 import { UpdateShopDto } from './dto/update-shop.dto';
 import type { UploadedImageFile } from '../../common/uploads/upload-file.type';
+import { UpdateShopStatusDto } from './dto/update-shop-status.dto';
 
 @ApiTags('Shops')
 @ApiBearerAuth()
@@ -165,5 +166,30 @@ export class ShopsController {
     }
 
     return this.shopsService.updateMyShopImages(userId, files);
+  }
+
+  @Patch('me/status')
+  @ApiOperation({
+    summary: 'Update my shop status',
+    description:
+      'Allows the authenticated seller to activate or deactivate their own shop, subject to shop status permissions.',
+  })
+  @ApiBody({ type: UpdateShopStatusDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Shop status updated successfully.',
+  })
+  @ApiResponse({ status: 400, description: 'Invalid status transition.' })
+  @ApiResponse({
+    status: 403,
+    description: 'Seller cannot change this shop status.',
+  })
+  @ApiResponse({ status: 404, description: 'Shop not found.' })
+  async updateMyShopStatus(@Req() req: any, @Body() dto: UpdateShopStatusDto) {
+    const userId = req.user.id;
+
+    this.logger.log(`Seller updating shop status. User ID: ${userId}`);
+
+    return this.shopsService.updateMyShopStatus(userId, dto);
   }
 }

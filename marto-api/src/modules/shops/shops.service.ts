@@ -1,4 +1,5 @@
 import {
+  ForbiddenException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -18,6 +19,9 @@ import {
 
 import { CLOUDINARY_FOLDERS } from '../../common/uploads/path.constants';
 import { UploadedImageFile } from '../../common/uploads/upload-file.type';
+import { ShopStatus } from 'src/common/enums/shop-status.enum';
+import { DisabledBy } from 'src/common/enums/disable-by.enum';
+import { UpdateShopStatusDto } from './dto/update-shop-status.dto';
 
 @Injectable()
 export class ShopsService {
@@ -178,5 +182,57 @@ export class ShopsService {
 
       throw error;
     }
+  }
+
+  async updateMyShopStatus(userId: string, dto: UpdateShopStatusDto) {
+    if (!userId) {
+      throw new UnauthorizedException('Authenticated user ID is missing.');
+    }
+
+    const shop = await this.shopRepository.findOne({
+      where: {
+        seller: {
+          user: {
+            id: userId,
+          },
+        },
+      },
+    });
+
+    if (!shop) {
+      throw new NotFoundException('Shop not found.');
+    }
+
+    // Seller wants to deactivate the shop.
+    if (dto.status === ShopStatus.INACTIVE) {
+      if (shop.status !== ShopStatus.ACTIVE) {
+        throw new BadRequestException(
+          'Only an active shop can be deactivated by the seller.',
+        );
+      }
+
+      shop.status = ShopStatus.INACTIVE;
+      shop.disabled_by = DisabledBy.SELLER;
+    }
+
+    // Seller wants to reactivate the shop.
+    if (dto.status === ShopStatus.ACTIVE) {
+      if (shop.status !== ShopStatus.INACTIVE) {
+        throw new BadRequestException(
+          'Only an inactive shop can be activated.',
+        );
+      }
+
+      if (shop.disabled_by !== DisabledBy.SELLER) {
+        throw new ForbiddenException(
+          'This shop status was managed by the admin. Contact the admin to reactivate your shop.',
+        );
+      }
+
+      shop.status = ShopStatus.ACTIVE;
+      shop.disabled_by = null;
+    }
+
+    return this.shopRepository.save(shop);
   }
 }
