@@ -16,7 +16,8 @@ import { SellerStatus } from '../../common/enums/seller-status.enum';
 import { MailService } from '../mail/mail.service';
 import { AdminSellersQueryDto } from './dto/admin-sellers-query.dto';
 import { PaginationProvider } from 'src/common/providers/pagination.provider';
-
+import { DisabledBy } from 'src/common/enums/disable-by.enum';
+import { UpdateAdminShopStatusDto } from './dto/update-shop-status-byadmin.dto';
 import { AdminShopsQueryDto } from './dto/admin-shops-query.dto';
 
 @Injectable()
@@ -311,5 +312,36 @@ export class AdminService {
     };
   }
 
+  // UPDATE SHOP STATUS
+  async updateShopStatus(shopId: string, dto: UpdateAdminShopStatusDto) {
+    const shopRepository = this.dataSource.getRepository(Shop);
 
+    const shop = await shopRepository.findOne({
+      where: { id: shopId },
+    });
+
+    if (!shop) {
+      throw new NotFoundException('Shop not found.');
+    }
+
+    shop.status = dto.status;
+
+    shop.disabled_by =
+      dto.status === ShopStatus.ACTIVE ? null : DisabledBy.ADMIN;
+
+    const updatedShop = await shopRepository.save(shop);
+
+    this.logger.log(`Admin updated shop ${shopId} status to ${dto.status}.`);
+
+    return {
+      success: true,
+      message: 'Shop status updated successfully.',
+      data: {
+        id: updatedShop.id,
+        name: updatedShop.name,
+        status: updatedShop.status,
+        disabled_by: updatedShop.disabled_by,
+      },
+    };
+  }
 }

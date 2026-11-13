@@ -33,6 +33,7 @@ import { RejectSellerDto } from './dto/reject-seller.dto';
 import { AdminSellersQueryDto } from './dto/admin-sellers-query.dto';
 
 import { SellerStatus } from '../../common/enums/seller-status.enum';
+import { UpdateAdminShopStatusDto } from './dto/update-shop-status-byadmin.dto';
 import { AdminShopsQueryDto } from './dto/admin-shops-query.dto';
 import { ShopStatus } from 'src/common/enums/shop-status.enum';
 
@@ -420,5 +421,64 @@ export class AdminController {
     return this.adminService.listShops(query);
   }
 
-
+  // UPDATE SHOP STATUS
+  @Patch('shops/:shopId/status')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Update shop status',
+    description:
+      'Allows Super Admin to activate, deactivate, suspend, or disable any shop.',
+  })
+  @ApiParam({
+    name: 'shopId',
+    description: 'UUID of the shop.',
+    type: String,
+  })
+  @ApiBody({
+    type: UpdateAdminShopStatusDto,
+    examples: {
+      activate: {
+        summary: 'Activate shop',
+        value: { status: 'ACTIVE' },
+      },
+      deactivate: {
+        summary: 'Deactivate shop',
+        value: { status: 'INACTIVE' },
+      },
+      suspend: {
+        summary: 'Suspend shop',
+        value: { status: 'SUSPENDED' },
+      },
+      disable: {
+        summary: 'Disable shop',
+        value: { status: 'DISABLED' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Shop status updated successfully.',
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid shop UUID or status.',
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Authentication token is missing or invalid.',
+  })
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: 'Only Super Admin can update shop status.',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Shop not found.',
+  })
+  async updateShopStatus(
+    @Param('shopId', new ParseUUIDPipe()) shopId: string,
+    @Body() dto: UpdateAdminShopStatusDto,
+  ) {
+    return this.adminService.updateShopStatus(shopId, dto);
+  }
 }
