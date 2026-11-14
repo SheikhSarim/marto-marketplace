@@ -9,6 +9,7 @@ import {
   Body,
   UseGuards,
   Query,
+  Logger,
 } from '@nestjs/common';
 
 import {
@@ -43,7 +44,9 @@ import { ShopStatus } from 'src/common/enums/shop-status.enum';
 @Roles(UserRole.SUPER_ADMIN)
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  private readonly logger = new Logger(AdminController.name);
+
+  constructor(private readonly adminService: AdminService) {}7
 
   // GET ALL SELLER APPLICATIONS
   @Get('sellers')
@@ -419,6 +422,45 @@ export class AdminController {
   })
   async listShops(@Query() query: AdminShopsQueryDto) {
     return this.adminService.listShops(query);
+  }
+
+  // GET SHOP DETAILS
+  @Get('shops/:shopId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Get shop details',
+    description:
+      'Retrieves complete available shop information along with associated seller and user details. Accessible only to Super Admin.',
+  })
+  @ApiParam({
+    name: 'shopId',
+    description: 'UUID of the shop.',
+    type: String,
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Shop details retrieved successfully.',
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid shop UUID.',
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Authentication token is missing or invalid.',
+  })
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: 'Only Super Admin can access shop details.',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Shop not found.',
+  })
+  async getShopDetails(@Param('shopId', new ParseUUIDPipe()) shopId: string) {
+    this.logger.log(`Admin requested details for shop ${shopId}.`);
+
+    return this.adminService.getShopDetails(shopId);
   }
 
   // UPDATE SHOP STATUS

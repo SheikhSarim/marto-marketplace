@@ -312,6 +312,68 @@ export class AdminService {
     };
   }
 
+  // GET SHOP DETAILS
+  async getShopDetails(shopId: string) {
+    const shopRepository = this.dataSource.getRepository(Shop);
+
+    const shop = await shopRepository.findOne({
+      where: { id: shopId },
+      relations: ['seller', 'seller.user'],
+    });
+
+    if (!shop) {
+      throw new NotFoundException('Shop not found.');
+    }
+
+    this.logger.log(`Admin fetched details for shop ${shopId}.`);
+
+    return {
+      success: true,
+      data: {
+        id: shop.id,
+        name: shop.name,
+        description: shop.description,
+        category_name: shop.category_name,
+        logo_url: shop.logo_url,
+        cover_image_url: shop.cover_image_url,
+        address: shop.address,
+        city: shop.city,
+        contact_phone: shop.contact_phone,
+        contact_email: shop.contact_email,
+        opening_hours: shop.opening_hours,
+        delivery_information: shop.delivery_information,
+        status: shop.status,
+        disabled_by: shop.disabled_by,
+        created_at: shop.created_at,
+        updated_at: shop.updated_at,
+
+        seller: {
+          id: shop.seller.id,
+          business_name: shop.seller.business_name,
+          business_email: shop.seller.business_email,
+          business_phone: shop.seller.business_phone,
+          business_address: shop.seller.business_address,
+          city: shop.seller.city,
+          status: shop.seller.status,
+          approved: shop.seller.approved,
+          created_at: shop.seller.created_at,
+          updated_at: shop.seller.updated_at,
+
+          user: {
+            id: shop.seller.user.id,
+            name: shop.seller.user.name,
+            email: shop.seller.user.email,
+            profile_pic: shop.seller.user.profile_pic,
+            is_email_verified: shop.seller.user.is_email_verified,
+            status: shop.seller.user.status,
+            created_at: shop.seller.user.created_at,
+            updated_at: shop.seller.user.updated_at,
+          },
+        },
+      },
+    };
+  }
+
   // UPDATE SHOP STATUS
   async updateShopStatus(shopId: string, dto: UpdateAdminShopStatusDto) {
     const shopRepository = this.dataSource.getRepository(Shop);
