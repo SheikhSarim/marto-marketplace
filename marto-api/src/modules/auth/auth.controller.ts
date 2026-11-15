@@ -21,7 +21,13 @@ import { AdminLoginDto } from './dto/login-admin-dto';
 import { Auth } from './decorators/auth.decorator';
 import { AuthType } from './enum/auth-type.enum';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { ApiBody, ApiConsumes, ApiOperation } from '@nestjs/swagger';
+import {
+  ApiBody,
+  ApiConsumes,
+  ApiOkResponse,
+  ApiOperation,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import type { UploadedImageFile } from '../../common/uploads/upload-file.type';
 
@@ -44,19 +50,44 @@ export class AuthController {
   // Silent Session Check
   @Get('session')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Silent session check on app start' })
+  @ApiOperation({
+    summary: 'Silent session check on app start',
+    description:
+      'Checks whether the current user has a valid authenticated session using the access token cookie.',
+  })
+  @ApiOkResponse({
+    description: 'Session is valid and user is authenticated.',
+    schema: {
+      example: {
+        success: true,
+        data: {
+          isAuthenticated: true,
+          user: {
+            id: '20c27893-8438-4d26-937c-12345667785ew',
+            email: 'example@demo.com',
+            role: 'ROLE',
+          },
+        },
+      },
+    },
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized - Access token is missing, invalid, or expired.',
+    schema: {
+      example: {
+        message: 'Token not found.',
+        error: 'Unauthorized',
+        statusCode: 401,
+      },
+    },
+  })
   async session(@Req() req: any) {
-    // console.log('[Session] Cookies:', req.cookies);
-    // console.log('[Session] All cookies:', req.cookies);
-    // console.log('[Session] access_token:', req.cookies?.access_token);
-
     if (!req.user) {
       throw new UnauthorizedException('Unauthorized');
     }
 
     return this.authService.getSession(req.user.id);
   }
-
   @Auth(AuthType.None)
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
@@ -174,6 +205,21 @@ export class AuthController {
           type: 'string',
           example: 'Everyday essentials and quality products from ABC Traders.',
         },
+        shop_category_id: {
+          type: 'string',
+          format: 'uuid',
+          description:
+            'Select an active category using GET /shop-categories/active and provide its UUID.',
+          example: 'cb58c632-eb3f-4c74-a561-47791f1a62eb',
+        },
+
+        custom_category_name: {
+          type: 'string',
+          description:
+            'Required only when the selected shop category is Other.',
+          example: 'Musical Instruments',
+        },
+
         shop_category: { type: 'string', example: 'General Store' },
         delivery_information: {
           type: 'string',

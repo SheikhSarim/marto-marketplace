@@ -1,8 +1,10 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsEmail,
   IsNotEmpty,
+  IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   MinLength,
 } from 'class-validator';
@@ -115,15 +117,24 @@ export class RegisterSellerDto {
   @MaxLength(2000)
   shop_description!: string;
 
+
   @ApiProperty({
-    example: 'General Store',
-    description: 'Main category of the shop',
-    maxLength: 120,
+    description: 'UUID of an active marketplace ShopCategory',
+    example: '550e8400-e29b-41d4-a716-446655440000',
   })
-  @IsString()
+  @IsUUID()
   @IsNotEmpty()
-  @MaxLength(120)
-  shop_category!: string;
+  shop_category_id!: string;
+
+  @ApiPropertyOptional({
+    description: 'Required when the selected ShopCategory is Other',
+    example: 'Musical Instruments',
+    maxLength: 150,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(150)
+  custom_category_name?: string;
 
   @ApiProperty({
     example: 'Delivery available in Lahore within 2-4 business days.',
@@ -133,5 +144,4 @@ export class RegisterSellerDto {
   @IsNotEmpty()
   @MaxLength(2000)
   delivery_information!: string;
-
 }

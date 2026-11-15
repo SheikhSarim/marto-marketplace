@@ -1,19 +1,31 @@
-import { ConflictException, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import { DataSource } from 'typeorm';
+
 import type { UploadedImageFile } from '../../../common/uploads/upload-file.type';
 
 import { RegisterSellerDto } from '../dto/register-seller.dto';
 import { HashProvider } from './hash.provider';
+
 import { User } from '../../users/entities/user.entity';
 import { Seller } from '../../sellers/entities/seller.entity';
 import { Shop } from '../../shops/entities/shop.entity';
+import { ShopCategory } from '../../shop-categories/entities/shop-category.entity';
+
 import { ShopStatus } from 'src/common/enums/shop-status.enum';
 import { UserRole } from '../../../common/enums/user-roles.enum';
 import { SellerStatus } from '../../../common/enums/seller-status.enum';
+import { ShopCategoryStatus } from '../../../common/enums/shop-category-status.enum';
+
 import {
   CloudinaryUploadService,
   UploadedCloudinaryImage,
 } from '../../../common/uploads/cloudinary-upload.service';
+
 import { CLOUDINARY_FOLDERS } from 'src/common/uploads/path.constants';
 import { EmailVerificationService } from '../../mail/email-verification.service';
 
@@ -45,6 +57,37 @@ export class RegisterSellerProvider {
       throw new ConflictException('This email is already registered.');
     }
 
+    // Validate selected ShopCategory.
+    const shopCategory = await this.dataSource
+      .getRepository(ShopCategory)
+      .findOne({
+        where: {
+          id: dto.shop_category_id,
+          status: ShopCategoryStatus.ACTIVE,
+        },
+      });
+
+    if (!shopCategory) {
+      throw new BadRequestException(
+        'Selected shop category does not exist or is inactive.',
+      );
+    }
+
+    const isOtherCategory = shopCategory.slug.toLowerCase() === 'other';
+    const customCategoryName = dto.custom_category_name?.trim();
+
+    if (isOtherCategory && !customCategoryName) {
+      throw new BadRequestException(
+        'Custom category name is required when selecting Other.',
+      );
+    }
+
+    if (!isOtherCategory && customCategoryName) {
+      throw new BadRequestException(
+        'Custom category name is only allowed when selecting Other.',
+      );
+    }
+
     const hashedPassword = await this.hashProvider.hashPassword(dto.password);
     const uploadedImages: UploadedCloudinaryImage[] = [];
 
@@ -58,6 +101,7 @@ export class RegisterSellerProvider {
             CLOUDINARY_FOLDERS.SHOP_LOGOS,
           )
         : null;
+
       if (logo) uploadedImages.push(logo);
 
       const cover = coverFile
@@ -66,6 +110,7 @@ export class RegisterSellerProvider {
             CLOUDINARY_FOLDERS.SHOP_COVERS,
           )
         : null;
+
       if (cover) uploadedImages.push(cover);
 
       const registrationResult = await this.dataSource.transaction(
@@ -73,6 +118,21 @@ export class RegisterSellerProvider {
           const userRepository = manager.getRepository(User);
           const sellerRepository = manager.getRepository(Seller);
           const shopRepository = manager.getRepository(Shop);
+          const shopCategoryRepository = manager.getRepository(ShopCategory);
+
+          // Revalidate category inside the transaction.
+          const selectedShopCategory = await shopCategoryRepository.findOne({
+            where: {
+              id: dto.shop_category_id,
+              status: ShopCategoryStatus.ACTIVE,
+            },
+          });
+
+          if (!selectedShopCategory) {
+            throw new BadRequestException(
+              'Selected shop category is no longer active.',
+            );
+          }
 
           const user = userRepository.create({
             name: dto.name.trim(),
@@ -80,6 +140,7 @@ export class RegisterSellerProvider {
             password: hashedPassword,
             role: UserRole.SELLER,
           });
+
           const savedUser = await userRepository.save(user);
 
           const seller = sellerRepository.create({
@@ -93,25 +154,33 @@ export class RegisterSellerProvider {
             status: SellerStatus.PENDING,
             approved: false,
           });
+
           const savedSeller = await sellerRepository.save(seller);
 
           // Keep the shop hidden until the seller application is approved.
           const shop = shopRepository.create({
             seller: savedSeller,
+            shopCategory: selectedShopCategory,
+
             name: dto.shop_name.trim(),
             description: dto.shop_description.trim(),
-            category_name: dto.shop_category.trim(),
+
+            custom_category_name: isOtherCategory ? customCategoryName! : null,
+
             logo_url: logo?.url ?? null,
             logo_public_id: logo?.publicId ?? null,
             cover_image_url: cover?.url ?? null,
             cover_image_public_id: cover?.publicId ?? null,
+
             address: dto.business_address.trim(),
             city: dto.city.trim(),
             contact_phone: dto.business_phone.trim(),
             contact_email: dto.business_email.trim().toLowerCase(),
             delivery_information: dto.delivery_information.trim(),
+
             status: ShopStatus.DISABLED,
           });
+
           const savedShop = await shopRepository.save(shop);
 
           return {
@@ -136,7 +205,8 @@ export class RegisterSellerProvider {
               shop: {
                 id: savedShop.id,
                 name: savedShop.name,
-                category: savedShop.category_name,
+                category: selectedShopCategory.name,
+                custom_category_name: savedShop.custom_category_name,
                 logo_url: savedShop.logo_url,
                 cover_image_url: savedShop.cover_image_url,
                 status: savedShop.status,
@@ -155,13 +225,15 @@ export class RegisterSellerProvider {
         await this.emailVerificationService.sendVerificationEmail(
           registrationResult.data.user.id,
         );
+
         registrationResult.data.email_verification.email_sent = true;
       } catch (error) {
-        // Registration is already committed. The status endpoint can resend a verification link.
+        // Registration is already committed.
         this.logger.error(
           'Seller application was created, but the verification email could not be sent.',
           error instanceof Error ? error.stack : undefined,
         );
+
         registrationResult.message =
           'Seller application submitted, but the verification email could not be sent. Use the application status page to request another link.';
       }
@@ -174,6 +246,7 @@ export class RegisterSellerProvider {
           this.cloudinaryUploadService.deleteImage(image.publicId),
         ),
       );
+
       throw error;
     }
   }
