@@ -333,7 +333,7 @@ export class AdminService {
         id: shop.id,
         name: shop.name,
         description: shop.description,
-        category_name: shop.category_name,
+        // category_name: shop.category_name,
         logo_url: shop.logo_url,
         cover_image_url: shop.cover_image_url,
         address: shop.address,
