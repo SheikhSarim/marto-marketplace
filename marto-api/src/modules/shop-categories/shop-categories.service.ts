@@ -82,4 +82,30 @@ export class ShopCategoriesService {
       throw error;
     }
   }
+
+  async findActive() {
+    const categories = await this.shopCategoryRepository.find({
+      where: {
+        status: ShopCategoryStatus.ACTIVE,
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+      },
+      order: {
+        name: 'ASC',
+      },
+    });
+
+    this.logger.log(
+      `Retrieved ${categories.length} active shop categories.`,
+    );
+
+    return {
+      success: true,
+      message: 'Active shop categories retrieved successfully.',
+      data: categories,
+    };
+  }
 }
