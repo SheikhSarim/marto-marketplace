@@ -11,6 +11,7 @@ import { UserRole } from 'src/common/enums/user-roles.enum';
 import { UserStatus } from '../../common/enums/user-status.enum';
 
 async function seedAdmin() {
+  const name = process.env.ADMIN_NAME?.trim() || 'Super Admin';
   const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
   const password = process.env.ADMIN_PASSWORD;
 
@@ -39,6 +40,7 @@ async function seedAdmin() {
     const passwordHash = await bcrypt.hash(password, 12);
 
     const admin = usersRepository.create({
+      name,
       email,
       password: passwordHash,
       role: UserRole.SUPER_ADMIN,
