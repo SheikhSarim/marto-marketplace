@@ -23,6 +23,7 @@ import dbConfig from './config/db.config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CustomersModule } from './modules/customers/customers.module';
 import { MailModule } from './modules/mail/mail.module';
+import { ShopCategoriesModule } from './modules/shop-categories/shop-categories.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { MailModule } from './modules/mail/mail.module';
     UsersModule,
     SellersModule,
     ShopsModule,
+    ShopCategoriesModule,
     CategoriesModule,
     ProductsModule,
     AddressesModule,
