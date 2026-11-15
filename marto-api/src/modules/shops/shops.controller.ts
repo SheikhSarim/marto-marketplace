@@ -67,17 +67,34 @@ export class ShopsController {
   @ApiOperation({
     summary: 'Update my shop details',
     description:
-      'Updates the authenticated seller’s shop information. Only provided fields are updated. Images and status cannot be changed through this endpoint.',
+      'Updates the authenticated seller’s shop information. Only provided fields are updated. Sellers can also change their marketplace shop category by selecting an active category. If Other is selected, custom_category_name is required. Images and status cannot be changed through this endpoint.',
   })
   @ApiBody({
     type: UpdateShopDto,
-    description: 'Provide the shop fields you want to update.',
+    description:
+      'Provide the shop fields you want to update. To change the shop category, provide shop_category_id. If the selected category is Other, custom_category_name must also be provided.',
   })
-  @ApiResponse({ status: 200, description: 'Shop updated successfully.' })
-  @ApiResponse({ status: 400, description: 'Validation error.' })
-  @ApiResponse({ status: 401, description: 'Unauthorized.' })
-  @ApiResponse({ status: 403, description: 'Forbidden.' })
-  @ApiResponse({ status: 404, description: 'Shop not found.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Shop details updated successfully.',
+  })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Validation error, inactive category, or missing custom category name when Other is selected.',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized.',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden. Only sellers can update their own shop.',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Shop or selected shop category not found.',
+  })
   async updateMyShop(@Req() req: any, @Body() dto: UpdateShopDto) {
     const userId = req.user.id;
 

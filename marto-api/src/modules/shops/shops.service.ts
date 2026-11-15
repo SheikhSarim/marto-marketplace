@@ -22,12 +22,17 @@ import { UploadedImageFile } from '../../common/uploads/upload-file.type';
 import { ShopStatus } from 'src/common/enums/shop-status.enum';
 import { DisabledBy } from 'src/common/enums/disable-by.enum';
 import { UpdateShopStatusDto } from './dto/update-shop-status.dto';
+import { ShopCategory } from '../shop-categories/entities/shop-category.entity';
+import { ShopCategoryStatus } from 'src/common/enums/shop-category-status.enum';
 
 @Injectable()
 export class ShopsService {
   constructor(
     @InjectRepository(Shop)
     private readonly shopRepository: Repository<Shop>,
+
+    @InjectRepository(ShopCategory)
+    private readonly shopCategoryRepository: Repository<ShopCategory>,
 
     private readonly cloudinaryUploadService: CloudinaryUploadService,
   ) {}
@@ -44,6 +49,9 @@ export class ShopsService {
             id: userId,
           },
         },
+      },
+      relations: {
+        shopCategory: true,
       },
     });
 
@@ -67,17 +75,66 @@ export class ShopsService {
           },
         },
       },
+      relations: {
+        shopCategory: true,
+      },
     });
 
     if (!shop) {
       throw new NotFoundException('Shop not found.');
     }
 
-    Object.assign(shop, dto);
+    // Update marketplace-level ShopCategory when a new ID is provided.
+    if (dto.shop_category_id !== undefined && dto.shop_category_id !== null) {
+      const selectedCategory = await this.shopCategoryRepository.findOne({
+        where: {
+          id: dto.shop_category_id,
+        },
+      });
 
-    return this.shopRepository.save(shop);
+      if (!selectedCategory) {
+        throw new NotFoundException('Selected shop category not found.');
+      }
+
+      if (selectedCategory.status !== ShopCategoryStatus.ACTIVE) {
+        throw new BadRequestException('Selected shop category is not active.');
+      }
+
+      const isOtherCategory = selectedCategory.slug.toLowerCase() === 'other';
+
+      if (isOtherCategory) {
+        const customCategoryName = dto.custom_category_name?.trim();
+
+        if (!customCategoryName) {
+          throw new BadRequestException(
+            'Custom category name is required when selecting Other.',
+          );
+        }
+
+        shop.custom_category_name = customCategoryName;
+      } else {
+        shop.custom_category_name = null;
+      }
+
+      shop.shopCategory = selectedCategory;
+    } else if (
+      dto.custom_category_name !== undefined &&
+      dto.custom_category_name !== null
+    ) {
+      throw new BadRequestException(
+        'Shop category ID is required when updating the custom category name.',
+      );
+    }
+
+    // Update remaining shop profile fields.
+    const { shop_category_id, custom_category_name, ...shopDetails } = dto;
+
+    Object.assign(shop, shopDetails);
+
+    const updatedShop = await this.shopRepository.save(shop);
+
+    return updatedShop;
   }
-
   async updateMyShopImages(
     userId: string,
     files: {

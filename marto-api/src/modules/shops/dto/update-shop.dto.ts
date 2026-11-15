@@ -6,8 +6,8 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
-  ValidateIf,
 } from 'class-validator';
 
 export class UpdateShopDto {
@@ -17,7 +17,7 @@ export class UpdateShopDto {
     maxLength: 150,
   })
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
-  @ValidateIf((_object, value) => value !== undefined)
+  @IsOptional()
   @IsString()
   @IsNotEmpty()
   @MaxLength(150)
@@ -32,14 +32,26 @@ export class UpdateShopDto {
   description?: string | null;
 
   @ApiPropertyOptional({
-    example: 'Fashion & Clothing',
-    description: 'Shop category name.',
-    maxLength: 120,
+    example: 'SHOP_CATEGORY_UUID',
+    description: 'ID of an active marketplace shop category.',
   })
   @IsOptional()
+  @IsUUID()
+  shop_category_id?: string;
+
+  @ApiPropertyOptional({
+    example: 'Handmade Accessories',
+    description:
+      'Required when the selected marketplace shop category is Other.',
+    maxLength: 150,
+  })
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @IsOptional()
   @IsString()
-  @MaxLength(120)
-  category_name?: string | null;
+  @MaxLength(150)
+  custom_category_name?: string | null;
 
   @ApiPropertyOptional({
     example: 'Shop 25, MM Alam Road, Gulberg III',

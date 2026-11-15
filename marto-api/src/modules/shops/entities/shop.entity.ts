@@ -1,3 +1,4 @@
+
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -7,15 +8,19 @@ import {
   JoinColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
 
 import { Seller } from '../../sellers/entities/seller.entity';
 import { Product } from '../../products/entities/product.entity';
 import { Order } from '../../orders/entities/order.entity';
+import { ShopCategory } from '../../shop-categories/entities/shop-category.entity';
+
 import { ShopStatus } from 'src/common/enums/shop-status.enum';
 import { DisabledBy } from 'src/common/enums/disable-by.enum';
 
 @Entity({ name: 'shops' })
+@Index('idx_shops_shop_category_id', ['shopCategory'])
 export class Shop {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -27,14 +32,23 @@ export class Shop {
   @JoinColumn({ name: 'seller_id', referencedColumnName: 'id' })
   seller!: Seller;
 
+  // Marketplace-level category managed by Super Admin.
+  @ManyToOne(() => ShopCategory, {
+    nullable: false,
+    onDelete: 'RESTRICT',
+  })
+  @JoinColumn({ name: 'shop_category_id', referencedColumnName: 'id' })
+  shopCategory!: ShopCategory;
+
   @Column({ type: 'varchar', length: 150 })
   name!: string;
 
   @Column({ type: 'text', nullable: true })
   description?: string | null;
 
-  @Column({ type: 'varchar', length: 120, nullable: true })
-  category_name?: string | null;
+  // Used only when the selected ShopCategory is "Other".
+  @Column({ type: 'varchar', length: 150, nullable: true })
+  custom_category_name!: string | null;
 
   @Column({ type: 'varchar', length: 500, nullable: true })
   logo_url?: string | null;
