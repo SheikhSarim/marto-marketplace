@@ -1,4 +1,3 @@
-
 import {
   BadRequestException,
   Injectable,
@@ -35,10 +34,7 @@ export class EmailVerificationService {
       throw new NotFoundException('User account was not found.');
     }
 
-    if (
-      user.role !== UserRole.SELLER &&
-      user.role !== UserRole.CUSTOMER
-    ) {
+    if (user.role !== UserRole.SELLER && user.role !== UserRole.CUSTOMER) {
       throw new BadRequestException(
         'Email verification is not available for this account type.',
       );
@@ -50,9 +46,7 @@ export class EmailVerificationService {
 
     const rawToken = randomBytes(32).toString('hex');
 
-    const tokenHash = createHash('sha256')
-      .update(rawToken)
-      .digest('hex');
+    const tokenHash = createHash('sha256').update(rawToken).digest('hex');
 
     const expiresAt = new Date(
       Date.now() + VERIFICATION_TOKEN_TTL_HOURS * 60 * 60 * 1000,
@@ -65,12 +59,11 @@ export class EmailVerificationService {
 
     const configuredBaseUrl =
       this.configService.get<string>('API_BASE_URL') ??
-      'http://localhost:3001';
+      'http://localhost:3001/api/v1';
 
     const baseUrl = configuredBaseUrl.replace(/\/+$/, '');
 
-    const verificationUrl =
-      `${baseUrl}/auth/verify-email?token=${rawToken}`;
+    const verificationUrl = `${baseUrl}/auth/verify-email?token=${rawToken}`;
 
     await this.mailService.sendEmailVerification({
       email: user.email,
@@ -91,9 +84,7 @@ export class EmailVerificationService {
       );
     }
 
-    const tokenHash = createHash('sha256')
-      .update(rawToken)
-      .digest('hex');
+    const tokenHash = createHash('sha256').update(rawToken).digest('hex');
 
     const userRepository = this.dataSource.getRepository(User);
 
