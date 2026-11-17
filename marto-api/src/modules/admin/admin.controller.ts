@@ -46,7 +46,7 @@ import { ShopStatus } from 'src/common/enums/shop-status.enum';
 export class AdminController {
   private readonly logger = new Logger(AdminController.name);
 
-  constructor(private readonly adminService: AdminService) {}7
+  constructor(private readonly adminService: AdminService) {}
 
   // GET ALL SELLER APPLICATIONS
   @Get('sellers')
