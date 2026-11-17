@@ -15,6 +15,7 @@ import { Seller } from '../../sellers/entities/seller.entity';
 import { Product } from '../../products/entities/product.entity';
 import { Order } from '../../orders/entities/order.entity';
 import { ShopCategory } from '../../shop-categories/entities/shop-category.entity';
+import { Category } from '../../categories/entities/category.entity';
 
 import { ShopStatus } from 'src/common/enums/shop-status.enum';
 import { DisabledBy } from 'src/common/enums/disable-by.enum';
@@ -105,6 +106,10 @@ export class Shop {
 
   @OneToMany(() => Product, (product) => product.shop)
   products!: Product[];
+
+  // Shop-owned custom ProductCategories / collections.
+  @OneToMany(() => Category, (category) => category.shop)
+  productCategories!: Category[];
 
   @OneToMany(() => Order, (order) => order.shop)
   orders!: Order[];

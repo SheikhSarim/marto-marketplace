@@ -1,5 +1,5 @@
-
 import {
+  Check,
   Column,
   CreateDateColumn,
   Entity,
@@ -12,30 +12,76 @@ import {
 } from 'typeorm';
 
 import { Seller } from '../../sellers/entities/seller.entity';
+import { Shop } from '../../shops/entities/shop.entity';
 import { Product } from '../../products/entities/product.entity';
+import { ProductShopCategory } from '../../products/entities/product-shop-category.entity';
 
 import { CategoryStatus } from '../../../common/enums/category-status.enum';
 import { DisabledBy } from '../../../common/enums/disable-by.enum';
+import { ProductCategoryScope } from '../../../common/enums/product-category-scope.enum';
 
+/**
+ * Unified ProductCategory model.
+ *
+ * Transitional compatibility:
+ * - seller remains nullable so existing seller-owned category rows can be preserved.
+ * - shop is nullable until legacy categories are mapped to their owning shops.
+ * - Existing product.category_id relation is retained temporarily.
+ * - New platform categories use scope=PLATFORM and no seller/shop owner.
+ * - New shop collections use scope=SHOP and a shop owner.
+ *
+ * Ownership consistency is validated in the service layer during this transition.
+ */
 @Entity({ name: 'categories' })
+@Check(
+  'chk_categories_scope_owner',
+  `(("scope" = 'PLATFORM' AND "shop_id" IS NULL AND "seller_id" IS NULL) OR ("scope" = 'SHOP' AND ("shop_id" IS NOT NULL OR "seller_id" IS NOT NULL)))`,
+)
 @Index('idx_categories_seller_status', ['seller', 'status'])
+@Index('idx_categories_shop_status', ['shop', 'status'])
+@Index('idx_categories_scope_status', ['scope', 'status'])
 @Index('idx_categories_parent', ['parent'])
+@Index('idx_categories_scope_parent', ['scope', 'parent'])
+@Index('idx_categories_scope_slug', ['scope', 'slug'])
+@Index('idx_categories_shop_slug', ['shop', 'slug'])
+@Index('uq_categories_platform_slug', ['slug'], { unique: true, where: `"scope" = 'PLATFORM'` })
+@Index('uq_categories_shop_slug', ['shop', 'slug'], { unique: true, where: `"scope" = 'SHOP' AND "shop_id" IS NOT NULL` })
 export class Category {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  // Every category must belong to a seller.
+  @Column({
+    type: 'enum',
+    enum: ProductCategoryScope,
+    enumName: 'product_category_scope_enum',
+    default: ProductCategoryScope.SHOP,
+  })
+  scope!: ProductCategoryScope;
+
+  // Legacy owner relation retained until existing seller categories are mapped.
   @ManyToOne(() => Seller, (seller) => seller.categories, {
-    nullable: false,
+    nullable: true,
     onDelete: 'RESTRICT',
   })
   @JoinColumn({
     name: 'seller_id',
     referencedColumnName: 'id',
   })
-  seller!: Seller;
+  seller!: Seller | null;
 
-  // Parent category for nested categories.
+  // New owner relation for shop-scoped custom collections.
+  @ManyToOne(() => Shop, (shop) => shop.productCategories, {
+    nullable: true,
+    onDelete: 'RESTRICT',
+  })
+  @JoinColumn({
+    name: 'shop_id',
+    referencedColumnName: 'id',
+  })
+  shop!: Shop | null;
+
+  // Parent and child categories must share the same scope and owner.
+  // This is validated by CategoryHierarchyProvider/service logic.
   @ManyToOne(() => Category, (category) => category.children, {
     nullable: true,
     onDelete: 'RESTRICT',
@@ -103,8 +149,20 @@ export class Category {
   })
   sort_order!: number;
 
+  // Legacy product.category_id relation retained during migration.
   @OneToMany(() => Product, (product) => product.category)
   products!: Product[];
+
+  // New mandatory marketplace classification (made NOT NULL after backfill).
+  @OneToMany(() => Product, (product) => product.primaryCategory)
+  primaryProducts!: Product[];
+
+  // Optional seller-created collections assigned to products.
+  @OneToMany(
+    () => ProductShopCategory,
+    (assignment) => assignment.category,
+  )
+  productAssignments!: ProductShopCategory[];
 
   @CreateDateColumn({
     type: 'timestamptz',
