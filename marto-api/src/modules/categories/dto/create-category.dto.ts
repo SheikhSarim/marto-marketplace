@@ -1,50 +1,48 @@
+import { Transform, Type } from 'class-transformer';
 import {
   IsInt,
   IsOptional,
   IsString,
+  IsUrl,
   IsUUID,
+  Max,
   MaxLength,
   Min,
+  MinLength,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateCategoryDto {
-  @ApiProperty({
-    description: 'The name of the category',
-    example: 'Electronics',
-    maxLength: 150,
-  })
+  @ApiProperty({ example: 'Electronics', maxLength: 150 })
+  @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
   @IsString()
+  @MinLength(2)
   @MaxLength(150)
   name!: string;
 
-  @ApiPropertyOptional({
-    description: 'A detailed description of the category',
-    example: 'Various electronic devices, gadgets, and accessories.',
-    maxLength: 5000,
-  })
+  @ApiPropertyOptional({ example: 'Electronic devices and accessories.' })
   @IsOptional()
+  @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
   @IsString()
   @MaxLength(5000)
   description?: string;
 
-  @ApiPropertyOptional({
-    description: 'The UUID of the parent category if it is a subcategory',
-    example: '123e4567-e89b-12d3-a456-426614174000',
-  })
+  @ApiPropertyOptional({ example: '123e4567-e89b-12d3-a456-426614174000' })
   @IsOptional()
   @IsUUID()
   parent_id?: string;
 
-  @ApiPropertyOptional({
-    description: 'The display sort order for the category',
-    example: 1,
-    minimum: 0,
-  })
+  @ApiPropertyOptional({ example: 1, minimum: 0, maximum: 100000 })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(0)
+  @Max(100000)
   sort_order?: number;
+
+  @ApiPropertyOptional({ example: 'https://res.cloudinary.com/demo/category.jpg' })
+  @IsOptional()
+  @IsUrl({ require_protocol: true })
+  @MaxLength(500)
+  image_url?: string;
 }
