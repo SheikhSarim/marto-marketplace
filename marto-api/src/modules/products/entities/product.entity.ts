@@ -19,12 +19,12 @@ import { ProductShopCategory } from './product-shop-category.entity';
 
 import { ProductStatus } from '../../../common/enums/product-status.enum';
 import { DiscountType } from '../../../common/enums/discount-type.enum';
-import { DisabledBy } from 'src/common/enums/disable-by.enum';
+import { DisabledBy } from '../../../common/enums/disable-by.enum';
 
 @Entity({ name: 'products' })
 @Index('idx_products_seller_status', ['seller', 'status'])
 @Index('idx_products_shop_status', ['shop', 'status'])
-@Index('idx_products_category_status', ['category', 'status'])
+@Index('uq_products_shop_sku', ['shop', 'sku'], { unique: true })
 @Index('idx_products_primary_category_status', ['primaryCategory', 'status'])
 @Index('idx_products_seller_created', ['seller', 'created_at'])
 @Index('idx_products_seller_price', ['seller', 'final_price'])
@@ -54,29 +54,16 @@ export class Product {
   })
   shop!: Shop;
 
-  // Legacy seller-category relation retained during the transition.
-  // Existing category_id values will later be migrated to collection assignments.
-  @ManyToOne(() => Category, (category) => category.products, {
-    nullable: false,
-    onDelete: 'RESTRICT',
-  })
-  @JoinColumn({
-    name: 'category_id',
-    referencedColumnName: 'id',
-  })
-  category!: Category;
-
-  // Marketplace-wide primary category. Kept nullable temporarily so existing
-  // product rows remain valid until the global taxonomy is seeded and backfilled.
+  // Every product must belong to exactly one marketplace-wide category.
   @ManyToOne(() => Category, (category) => category.primaryProducts, {
-    nullable: true,
+    nullable: false,
     onDelete: 'RESTRICT',
   })
   @JoinColumn({
     name: 'primary_category_id',
     referencedColumnName: 'id',
   })
-  primaryCategory!: Category | null;
+  primaryCategory!: Category;
 
   @OneToMany(
     () => ProductShopCategory,
