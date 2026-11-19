@@ -586,21 +586,43 @@ export class CategoriesService {
     dto: UpdateCategoryStatusDto,
   ) {
     const category = await this.categoryRepository.findOne({
-      where: { id: categoryId, scope: ProductCategoryScope.SHOP },
+      where: {
+        id: categoryId,
+        scope: ProductCategoryScope.SHOP,
+      },
       relations: { shop: true },
     });
-    if (!category || category.status === CategoryStatus.REMOVED)
+
+    if (!category || category.status === CategoryStatus.REMOVED) {
       throw new NotFoundException('Seller product category not found.');
-    if (dto.status === CategoryStatus.ACTIVE)
-      throw new BadRequestException(
-        'Admin moderation endpoint can disable seller categories; sellers manage reactivation unless the category was admin-disabled.',
-      );
-    category.status = CategoryStatus.DISABLED;
-    category.disabled_by = DisabledBy.ADMIN;
+    }
+
+    if (dto.status === CategoryStatus.ACTIVE) {
+      // Admin can only reactivate categories disabled by admin.
+      if (category.disabled_by !== DisabledBy.ADMIN) {
+        throw new BadRequestException(
+          'Admin can only reactivate categories disabled by admin.',
+        );
+      }
+
+      category.status = CategoryStatus.ACTIVE;
+      category.disabled_by = null;
+    } else if (dto.status === CategoryStatus.DISABLED) {
+      // Admin can disable any seller-owned category.
+      category.status = CategoryStatus.DISABLED;
+      category.disabled_by = DisabledBy.ADMIN;
+    } else {
+      throw new BadRequestException('Invalid category status.');
+    }
+
     const saved = await this.categoryRepository.save(category);
+
     return {
       success: true,
-      message: 'Seller product category disabled by admin.',
+      message:
+        dto.status === CategoryStatus.ACTIVE
+          ? 'Seller product category reactivated by admin.'
+          : 'Seller product category disabled by admin.',
       data: this.toResponse(saved, await this.countCategoryProducts(saved)),
     };
   }
