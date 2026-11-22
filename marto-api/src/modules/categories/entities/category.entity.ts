@@ -23,14 +23,9 @@ import { ProductCategoryScope } from '../../../common/enums/product-category-sco
 /**
  * Unified ProductCategory model.
  *
- * Transitional compatibility:
- * - seller remains nullable so existing seller-owned category rows can be preserved.
- * - shop is nullable until legacy categories are mapped to their owning shops.
- * - Existing product.category_id relation is retained temporarily.
- * - New platform categories use scope=PLATFORM and no seller/shop owner.
- * - New shop collections use scope=SHOP and a shop owner.
- *
- * Ownership consistency is validated in the service layer during this transition.
+ * Platform categories classify products across the marketplace. Shop categories
+ * are seller-managed collections scoped to one shop. Product assignments to
+ * shop collections are stored in the product_shop_categories join table.
  */
 @Entity({ name: 'categories' })
 @Check(
@@ -149,11 +144,7 @@ export class Category {
   })
   sort_order!: number;
 
-  // Legacy product.category_id relation retained during migration.
-  @OneToMany(() => Product, (product) => product.category)
-  products!: Product[];
-
-  // New mandatory marketplace classification (made NOT NULL after backfill).
+  // Mandatory marketplace-wide classification for products.
   @OneToMany(() => Product, (product) => product.primaryCategory)
   primaryProducts!: Product[];
 

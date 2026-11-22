@@ -34,13 +34,6 @@ export class CreateProductDto {
   @MaxLength(10000)
   description?: string;
 
-  @ApiProperty({ example: 'SKU-KB-001' })
-  @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
-  @IsString()
-  @MinLength(2)
-  @MaxLength(100)
-  sku!: string;
-
   @ApiPropertyOptional({ example: 'Logitech', maxLength: 100 })
   @IsOptional()
   @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
