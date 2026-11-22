@@ -1,6 +1,6 @@
+import { randomBytes } from 'crypto';
 import {
   BadRequestException,
-  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -149,7 +149,12 @@ export class ProductsService {
     const price = dto.price ?? existing?.price;
     if (price === undefined || price <= 0) throw new BadRequestException('Product price must be greater than zero.');
     const discountType = dto.discount_type ?? existing?.discount_type ?? DiscountType.NONE;
-    const discountValue = dto.discount_value ?? existing?.discount_value ?? 0;
+    // Switching an existing discounted product to NONE clears its old discount automatically.
+    const discountValue = discountType === DiscountType.NONE
+      ? (dto.discount_value !== undefined && dto.discount_value !== 0
+          ? dto.discount_value
+          : 0)
+      : (dto.discount_value ?? existing?.discount_value ?? 0);
     if (discountValue < 0) throw new BadRequestException('Discount value cannot be negative.');
     let finalPrice = price;
     if (discountType === DiscountType.NONE) {
@@ -173,12 +178,24 @@ export class ProductsService {
     return { price, discountType, discountValue, finalPrice: Number(finalPrice.toFixed(2)), startsAt, endsAt };
   }
 
-  private async ensureSkuAvailable(shopId: string, sku: string, excludeId?: string): Promise<void> {
-    const qb = this.productRepository.createQueryBuilder('product')
-      .where('product.shop_id = :shopId', { shopId })
-      .andWhere('LOWER(product.sku) = LOWER(:sku)', { sku });
-    if (excludeId) qb.andWhere('product.id != :excludeId', { excludeId });
-    if (await qb.getOne()) throw new ConflictException('A product with this SKU already exists in this shop.');
+  private async generateUniqueSku(shopId: string, productName: string): Promise<string> {
+    const prefix = this.slugify(productName)
+      .replace(/-/g, '')
+      .toUpperCase()
+      .slice(0, 70) || 'PRODUCT';
+
+    // SKU uniqueness is enforced per shop by the database unique index.
+    // The database index remains the final safeguard against concurrent requests.
+    while (true) {
+      const sku = `${prefix}-${randomBytes(4).toString('hex').toUpperCase()}`;
+      const exists = await this.productRepository
+        .createQueryBuilder('product')
+        .where('product.shop_id = :shopId', { shopId })
+        .andWhere('LOWER(product.sku) = LOWER(:sku)', { sku })
+        .getExists();
+
+      if (!exists) return sku;
+    }
   }
 
   private productResponse(product: Product) {
@@ -225,11 +242,11 @@ export class ProductsService {
 
   async createSellerProduct(userId: string, shopId: string, dto: CreateProductDto) {
     const { seller, shop } = await this.getSellerShop(userId, shopId);
-    await this.ensureSkuAvailable(shopId, dto.sku);
+    const sku = await this.generateUniqueSku(shopId, dto.name);
     const primaryCategory = await this.getPlatformCategory(dto.primary_category_id);
     const shopCategories = await this.getShopCategories(shopId, dto.shop_category_ids);
     const pricing = this.validatePricing(dto);
-    const slug = await this.generateUniqueSlug(dto.name, dto.sku);
+    const slug = await this.generateUniqueSlug(dto.name, sku);
     const stock = dto.stock_quantity ?? 0;
     const product = this.productRepository.create({
       seller,
@@ -238,7 +255,7 @@ export class ProductsService {
       name: dto.name.trim(),
       slug,
       description: dto.description?.trim() || null,
-      sku: dto.sku.trim(),
+      sku,
       brand: dto.brand?.trim() || null,
       price: pricing.price,
       discount_type: pricing.discountType,
@@ -279,7 +296,6 @@ export class ProductsService {
       relations: { shop: true, seller: true, primaryCategory: true, images: true, shopCategoryAssignments: { category: true } },
     });
     if (!product || product.status === ProductStatus.REMOVED) throw new NotFoundException('Product not found.');
-    if (dto.sku !== undefined) await this.ensureSkuAvailable(shopId, dto.sku, product.id);
     const primaryCategory = dto.primary_category_id
       ? await this.getPlatformCategory(dto.primary_category_id)
       : product.primaryCategory;
@@ -288,14 +304,12 @@ export class ProductsService {
       : undefined;
     const pricing = this.validatePricing(dto, product);
     const nextName = dto.name?.trim() ?? product.name;
-    const nextSku = dto.sku?.trim() ?? product.sku;
     Object.assign(product, {
       name: nextName,
-      slug: dto.name !== undefined || dto.sku !== undefined
-        ? await this.generateUniqueSlug(nextName, nextSku, product.id)
+      slug: dto.name !== undefined
+        ? await this.generateUniqueSlug(nextName, product.sku, product.id)
         : product.slug,
       description: dto.description !== undefined ? (dto.description?.trim() || null) : product.description,
-      sku: nextSku,
       brand: dto.brand !== undefined ? (dto.brand?.trim() || null) : product.brand,
       primaryCategory,
       price: pricing.price,
