@@ -16,6 +16,10 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 // import { CreateUserProvider } from '../providers/create-user.provider';/
 import { FindUserByEmailProvider } from './providers/find-user-by-email.provider';
 import { FindUserByIdProvider } from './providers/find-user-by-id.provider';
+
+import { CloudinaryUploadService } from 'src/common/uploads/cloudinary-upload.service';
+import type { UploadedImageFile } from 'src/common/uploads/upload-file.type';
+
 // import { CreateGoogleUserProvider } from '../providers/create-google-user.provider';
 // import { CreateGoogleUserDto } from '../dto/create-google-user.dto';
 
@@ -35,7 +39,7 @@ export class UsersService {
     private readonly sellerRepository: Repository<Seller>,
 
     private readonly dataSource: DataSource,
-
+    private readonly cloudinaryUploadService: CloudinaryUploadService,
     // private readonly createUserProvider: CreateUserProvider,
     private readonly findUserByEmailProvider: FindUserByEmailProvider,
     private readonly findUserByIdProvider: FindUserByIdProvider,
@@ -173,6 +177,46 @@ export class UsersService {
         updated_at: user.updated_at,
       };
     });
+  }
+
+  async updateMyProfilePicture(
+    userId: string,
+    role: UserRole,
+    file: UploadedImageFile,
+  ) {
+    if (![UserRole.CUSTOMER, UserRole.SELLER].includes(role)) {
+      throw new ForbiddenException(
+        'Profile picture update is not allowed for this role',
+      );
+    }
+
+    const user = await this.userRepository.findOne({
+      where: { id: userId, role },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const uploadedImage = await this.cloudinaryUploadService.uploadImage(
+      file,
+      'PROFILE_IMAGES',
+    );
+
+    try {
+      user.profile_pic = uploadedImage.url;
+      await this.userRepository.save(user);
+
+      return {
+        message: 'Profile picture updated successfully',
+        profile_pic: user.profile_pic,
+      };
+    } catch (error) {
+      // Clean up the newly uploaded image if the database update fails.
+      await this.cloudinaryUploadService.deleteImage(uploadedImage.publicId);
+
+      throw error;
+    }
   }
 
   //   async createGoogleUser(dto: CreateGoogleUserDto): Promise<User> {
