@@ -1,12 +1,4 @@
-
-import {
-  Body,
-  Controller,
-  Get,
-  Patch,
-  Req,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Patch, Req, UseGuards } from '@nestjs/common';
 
 import {
   ApiBearerAuth,
@@ -74,9 +66,43 @@ export class UsersController {
   @ApiUnauthorizedResponse({ description: 'Authentication required.' })
   @ApiForbiddenResponse({ description: 'Access denied for this role.' })
   async getMyProfile(@Req() req: AuthenticatedRequest) {
-    return this.usersService.getMyProfile(
-      req.user.id,
-      req.user.role,
-    );
+    return this.usersService.getMyProfile(req.user.id, req.user.role);
+  }
+
+  @Patch('me')
+  @ApiOperation({
+    summary: 'Update my profile',
+    description:
+      'Updates the authenticated Customer or Seller personal profile. Email and account role cannot be changed.',
+  })
+  @ApiOkResponse({
+    description: 'Profile updated successfully.',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', format: 'uuid' },
+        name: { type: 'string' },
+        email: { type: 'string' },
+        role: { type: 'string' },
+        status: { type: 'string' },
+        profile_pic: { type: 'string' },
+        phone: {
+          type: 'string',
+          nullable: true,
+          description: 'Available for Customer profiles only.',
+        },
+        is_email_verified: { type: 'boolean' },
+        updated_at: { type: 'string', format: 'date-time' },
+      },
+    },
+  })
+  @ApiBadRequestResponse({ description: 'Invalid profile data.' })
+  @ApiUnauthorizedResponse({ description: 'Authentication required.' })
+  @ApiForbiddenResponse({ description: 'Access denied for this role.' })
+  async updateMyProfile(
+    @Req() req: AuthenticatedRequest,
+    @Body() dto: UpdateProfileDto,
+  ) {
+    return this.usersService.updateMyProfile(req.user.id, req.user.role, dto);
   }
 }

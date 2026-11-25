@@ -117,6 +117,64 @@ export class UsersService {
     };
   }
 
+  async updateMyProfile(userId: string, role: UserRole, dto: UpdateProfileDto) {
+    if (![UserRole.CUSTOMER, UserRole.SELLER].includes(role)) {
+      throw new ForbiddenException(
+        'Profile update is not allowed for this role',
+      );
+    }
+
+    return this.dataSource.transaction(async (manager) => {
+      const userRepo = manager.getRepository(User);
+      const customerRepo = manager.getRepository(Customer);
+
+      const user = await userRepo.findOne({
+        where: { id: userId, role },
+      });
+
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      if (dto.name !== undefined) {
+        user.name = dto.name.trim();
+      }
+
+      await userRepo.save(user);
+
+      let phone: string | null = null;
+
+      if (role === UserRole.CUSTOMER) {
+        const customer = await customerRepo.findOne({
+          where: { user: { id: userId } },
+        });
+
+        if (!customer) {
+          throw new NotFoundException('Customer profile not found');
+        }
+
+        if (dto.phone !== undefined) {
+          customer.phone = dto.phone.trim() || null;
+        }
+
+        await customerRepo.save(customer);
+        phone = customer.phone ?? null;
+      }
+
+      return {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        status: user.status,
+        profile_pic: user.profile_pic,
+        ...(role === UserRole.CUSTOMER ? { phone } : {}),
+        is_email_verified: user.is_email_verified,
+        updated_at: user.updated_at,
+      };
+    });
+  }
+
   //   async createGoogleUser(dto: CreateGoogleUserDto): Promise<User> {
   //     return this.createGoogleUserProvider.createGoogleUser(dto);
   //   }
