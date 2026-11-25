@@ -60,7 +60,8 @@ export class User {
     type: 'varchar',
     length: 500,
     nullable: false,
-    default: 'https://res.cloudinary.com/dk6pkgyak/image/upload/v1761949436/default-avatar_e2tpup.jpg',
+    default:
+      'https://res.cloudinary.com/dk6pkgyak/image/upload/v1761949436/default-avatar_e2tpup.jpg',
   })
   profile_pic!: string;
 
@@ -83,6 +84,28 @@ export class User {
     select: false,
   })
   email_verification_token_expires_at?: Date | null;
+
+  @Column({
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
+  pending_email?: string | null;
+
+  @Column({
+    type: 'varchar',
+    length: 64,
+    nullable: true,
+    select: false,
+  })
+  email_change_token_hash?: string | null;
+
+  @Column({
+    type: 'timestamptz',
+    nullable: true,
+    select: false,
+  })
+  email_change_token_expires_at?: Date | null;
 
   @Column({
     type: 'timestamptz',

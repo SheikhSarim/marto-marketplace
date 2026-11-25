@@ -11,6 +11,7 @@ import { RegisterSellerDto } from '../dto/register-seller.dto';
 import { LoginSellerDto } from '../dto/login-seller.dto';
 import { SellerLoginProvider } from './seller-login.provider';
 
+import { EmailChangeProvider } from './email-change.provider';
 import { EmailVerificationService } from '../../mail/email-verification.service';
 import type { UploadedImageFile } from '../../../common/uploads/upload-file.type';
 
@@ -27,6 +28,7 @@ import { RegisterCustomerProvider } from './register-customer.provider';
 import { LoginCustomerProvider } from './customer-login.provider';
 import { CustomerPasswordProvider } from './customer-password.provider';
 import { CustomerEmailVerificationProvider } from './customer-email-verification.provider';
+import { UserRole } from 'src/common/enums/user-roles.enum';
 
 @Injectable()
 export class AuthService {
@@ -36,7 +38,7 @@ export class AuthService {
 
     private readonly usersService: UsersService,
     private readonly refreshProvider: RefreshProvider,
-
+    private readonly emailChangeProvider: EmailChangeProvider,
     // Seller providers
     private readonly registerSellerProvider: RegisterSellerProvider,
     private readonly sellerLoginProvider: SellerLoginProvider,
@@ -139,5 +141,23 @@ export class AuthService {
         },
       },
     };
+  }
+
+  async requestEmailChange(
+    userId: string,
+    role: UserRole,
+    currentPassword: string,
+    newEmail: string,
+  ) {
+    return this.emailChangeProvider.requestEmailChange(
+      userId,
+      role,
+      currentPassword,
+      newEmail,
+    );
+  }
+
+  async verifyEmailChange(token: string) {
+    return this.emailChangeProvider.verifyEmailChange(token);
   }
 }

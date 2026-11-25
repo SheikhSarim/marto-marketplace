@@ -135,6 +135,38 @@ export class MailService {
     }
   }
 
+  // EMAIL CHANGE VERIFICATION
+  async sendEmailChangeVerification(data: {
+    email: string;
+    name: string;
+    verificationUrl: string;
+    expiresInHours: number;
+  }): Promise<void> {
+    try {
+      const result = await this.mailerService.sendMail({
+        to: data.email,
+        subject: 'Marto Marketplace — Verify Your New Email Address',
+        template: 'users/email-change-verification',
+        context: {
+          name: data.name,
+          verificationUrl: data.verificationUrl,
+          expiresInHours: data.expiresInHours,
+        },
+      });
+
+      this.logger.log(
+        `Email change verification email accepted for ${data.email}. Message ID: ${result.messageId}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to send email change verification to ${data.email}.`,
+        error instanceof Error ? error.stack : undefined,
+      );
+
+      throw error;
+    }
+  }
+
   async sendPasswordResetEmail(data: {
     email: string;
     name: string;

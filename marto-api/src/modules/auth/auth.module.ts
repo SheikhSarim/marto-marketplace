@@ -6,7 +6,6 @@ import { APP_GUARD } from '@nestjs/core';
 import { AuthController } from './auth.controller';
 import { AuthService } from './providers/auth.service';
 
-
 import { GenerateTokenProvider } from './providers/generate-token.provider';
 import { HashProvider } from './providers/hash.provider';
 import { BcryptProvider } from './providers/bcrypt.provider';
@@ -29,6 +28,7 @@ import { RegisterCustomerProvider } from './providers/register-customer.provider
 import { LoginCustomerProvider } from './providers/customer-login.provider';
 import { CustomerPasswordProvider } from './providers/customer-password.provider';
 import { CustomerEmailVerificationProvider } from './providers/customer-email-verification.provider';
+import { EmailChangeProvider } from './providers/email-change.provider';
 
 @Module({
   imports: [
@@ -55,6 +55,8 @@ import { CustomerEmailVerificationProvider } from './providers/customer-email-ve
 
     RegisterSellerProvider,
     SellerLoginProvider,
+
+    EmailChangeProvider,
 
     GenerateTokenProvider,
     AccessTokenGuard,

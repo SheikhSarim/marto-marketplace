@@ -14,6 +14,7 @@ import {
   BadRequestException,
   Query,
 } from '@nestjs/common';
+
 import type { Request, Response } from 'express';
 
 import { AuthService } from './providers/auth.service';
@@ -21,33 +22,45 @@ import { AdminLoginDto } from './dto/login-admin-dto';
 import { Auth } from './decorators/auth.decorator';
 import { AuthType } from './enum/auth-type.enum';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+
 import {
+  ApiBearerAuth,
   ApiBody,
   ApiConsumes,
   ApiOkResponse,
   ApiOperation,
   ApiUnauthorizedResponse,
+  ApiConflictResponse,
+  ApiBadRequestResponse,
 } from '@nestjs/swagger';
+
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import type { UploadedImageFile } from '../../common/uploads/upload-file.type';
 
 import { RegisterSellerDto } from './dto/register-seller.dto';
 import { LoginSellerDto } from './dto/login-seller.dto';
+
 import {
   ALLOWED_IMAGE_MIME_TYPES,
   IMAGE_UPLOAD_MAX_SIZE,
 } from '../../common/uploads/upload.constants';
+
 import { RegisterCustomerDto } from './dto/register-customer.dto';
 import { EmailDto } from './dto/email.dto';
 import { LoginCustomerDto } from './dto/login-customer.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 
+import { RequestEmailChangeDto } from './dto/request-email-change.dto';
+import { VerifyEmailChangeDto } from './dto/verify-email-change.dto';
+
 @Controller('auth')
-// @Auth(AuthType.None)
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  // Silent Session Check
+  // ==========================================
+  // SESSION
+  // ==========================================
+
   @Get('session')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({
@@ -88,6 +101,11 @@ export class AuthController {
 
     return this.authService.getSession(req.user.id);
   }
+
+  // ==========================================
+  // REFRESH TOKEN
+  // ==========================================
+
   @Auth(AuthType.None)
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
@@ -103,6 +121,10 @@ export class AuthController {
     return this.authService.refresh(request, response);
   }
 
+  // ==========================================
+  // LOGOUT
+  // ==========================================
+
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
@@ -115,6 +137,10 @@ export class AuthController {
     };
   }
 
+  // ==========================================
+  // SELLER EMAIL VERIFICATION
+  // ==========================================
+
   @Auth(AuthType.None)
   @Get('verify-email')
   @HttpCode(HttpStatus.OK)
@@ -124,6 +150,10 @@ export class AuthController {
   async verifyEmail(@Query('token') token: string) {
     return this.authService.verifyEmail(token);
   }
+
+  // ==========================================
+  // SELLER LOGIN
+  // ==========================================
 
   @Auth(AuthType.None)
   @Post('seller/login')
@@ -138,6 +168,10 @@ export class AuthController {
     return this.authService.loginSeller(dto, response);
   }
 
+  // ==========================================
+  // ADMIN LOGIN
+  // ==========================================
+
   @Auth(AuthType.None)
   @Post('admin/login')
   @HttpCode(HttpStatus.OK)
@@ -147,6 +181,10 @@ export class AuthController {
   ) {
     return this.authService.loginAdmin(dto, response);
   }
+
+  // ==========================================
+  // SELLER REGISTRATION
+  // ==========================================
 
   @Auth(AuthType.None)
   @Post('register/seller')
@@ -212,14 +250,12 @@ export class AuthController {
             'Select an active category using GET /shop-categories/active and provide its UUID.',
           example: 'cb58c632-eb3f-4c74-a561-47791f1a62eb',
         },
-
         custom_category_name: {
           type: 'string',
           description:
             'Required only when the selected shop category is Other.',
           example: 'Musical Instruments',
         },
-
         shop_category: { type: 'string', example: 'General Store' },
         delivery_information: {
           type: 'string',
@@ -262,6 +298,7 @@ export class AuthController {
             );
             return;
           }
+
           callback(null, true);
         },
       },
@@ -277,8 +314,9 @@ export class AuthController {
   ) {
     return this.authService.registerSeller(dto, files);
   }
+
   // ==========================================
-  // CUSTOMER AUTHENTICATION
+  // CUSTOMER REGISTRATION
   // ==========================================
 
   @Auth(AuthType.None)
@@ -288,6 +326,10 @@ export class AuthController {
   async registerCustomer(@Body() dto: RegisterCustomerDto) {
     return this.authService.registerCustomer(dto);
   }
+
+  // ==========================================
+  // CUSTOMER LOGIN
+  // ==========================================
 
   @Auth(AuthType.None)
   @Post('customer/login')
@@ -336,5 +378,93 @@ export class AuthController {
   })
   async resetCustomerPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetCustomerPassword(dto);
+  }
+
+  // ==========================================
+  // EMAIL CHANGE
+  // ==========================================
+
+  @Post('email/change-request')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Request email address change',
+    description:
+      'Customer or Seller can request an email change after verifying their current password. A verification link will be sent to the new email address.',
+  })
+  @ApiBody({
+    type: RequestEmailChangeDto,
+    schema: {
+      example: {
+        current_password: 'CurrentPassword123!',
+        new_email: 'newemail@example.com',
+      },
+    },
+  })
+  @ApiOkResponse({
+    description: 'Verification email sent successfully.',
+    schema: {
+      example: {
+        statusCode: 200,
+        message: 'Verification email sent successfully.',
+      },
+    },
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Invalid current password or unauthorized.',
+    schema: {
+      example: {
+        statusCode: 401,
+        message: 'Invalid current password',
+        error: 'Unauthorized',
+      },
+    },
+  })
+  @ApiConflictResponse({
+    description: 'Email address is already registered.',
+    schema: {
+      example: {
+        statusCode: 409,
+        message: 'Email address is already registered.',
+        error: 'Conflict',
+      },
+    },
+  })
+  async requestEmailChange(
+    @Req() request: any,
+    @Body() dto: RequestEmailChangeDto,
+  ) {
+    if (!request.user) {
+      throw new UnauthorizedException('Unauthorized');
+    }
+
+    return this.authService.requestEmailChange(
+      request.user.id,
+      request.user.role,
+      dto.current_password,
+      dto.new_email,
+    );
+  }
+
+  @Auth(AuthType.None)
+  @Post('email/verify')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Verify new email address',
+    description:
+      'Verifies the email change token and updates the account email address.',
+  })
+  @ApiOkResponse({
+    description: 'Email address updated successfully.',
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid or expired verification token.',
+  })
+  @ApiConflictResponse({
+    description: 'Email address is already registered.',
+  })
+  async verifyEmailChange(@Body() dto: VerifyEmailChangeDto) {
+    return this.authService.verifyEmailChange(dto.token);
   }
 }
