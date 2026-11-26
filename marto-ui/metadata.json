@@ -1,0 +1,6 @@
+{
+  "name": "Marto Marketplace",
+  "description": "Multi-vendor e-commerce marketplace featuring Customer Mobile App, Seller Join Portal, Seller Panel, and Super Admin Governance with single-seller cart enforcement and PKR platform fee accounting.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
