@@ -1,5 +1,6 @@
-
 import {
+  BadRequestException,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -52,8 +53,7 @@ export class CustomerPasswordProvider {
       await repo.save(user);
 
       const frontend = (
-        this.config.get<string>('FRONTEND_URL') ||
-        'http://localhost:3000'
+        this.config.get<string>('FRONTEND_URL') || 'http://localhost:3000'
       ).replace(/\/+$/, '');
 
       await this.mail.sendPasswordResetEmail({
@@ -72,13 +72,8 @@ export class CustomerPasswordProvider {
 
   // RESET PASSWORD
 
-  async resetPassword(
-    rawToken: string,
-    newPassword: string,
-  ) {
-    const hash = createHash('sha256')
-      .update(rawToken)
-      .digest('hex');
+  async resetPassword(rawToken: string, newPassword: string) {
+    const hash = createHash('sha256').update(rawToken).digest('hex');
 
     const repo = this.dataSource.getRepository(User);
 
@@ -88,18 +83,11 @@ export class CustomerPasswordProvider {
         'user.password_reset_token_hash',
         'user.password_reset_token_expires_at',
       ])
-      .where(
-        'user.password_reset_token_hash = :hash',
-        { hash },
-      )
-      .andWhere(
-        'user.password_reset_token_expires_at > :now',
-        { now: new Date() },
-      )
-      .andWhere(
-        'user.role = :role',
-        { role: UserRole.CUSTOMER },
-      )
+      .where('user.password_reset_token_hash = :hash', { hash })
+      .andWhere('user.password_reset_token_expires_at > :now', {
+        now: new Date(),
+      })
+      .andWhere('user.role = :role', { role: UserRole.CUSTOMER })
       .getOne();
 
     if (!user) {
@@ -108,9 +96,7 @@ export class CustomerPasswordProvider {
       );
     }
 
-    user.password = await this.hashProvider.hashPassword(
-      newPassword,
-    );
+    user.password = await this.hashProvider.hashPassword(newPassword);
 
     user.password_reset_token_hash = null;
     user.password_reset_token_expires_at = null;
@@ -120,6 +106,72 @@ export class CustomerPasswordProvider {
     return {
       success: true,
       message: 'Password has been reset successfully.',
+    };
+  }
+
+  // CHANGE PASSWORD
+
+  async changePassword(
+    userId: string,
+    role: UserRole,
+    currentPassword: string,
+    newPassword: string,
+  ) {
+    // Authorization check
+    if (![UserRole.CUSTOMER, UserRole.SELLER].includes(role)) {
+      throw new ForbiddenException(
+        'You are not allowed to change your password.',
+      );
+    }
+
+    const repo = this.dataSource.getRepository(User);
+
+    const user = await repo
+      .createQueryBuilder('user')
+      .addSelect([
+        'user.password',
+        'user.password_reset_token_hash',
+        'user.password_reset_token_expires_at',
+      ])
+      .where('user.id = :userId', { userId })
+      .andWhere('user.role = :role', { role })
+      .getOne();
+
+    if (!user || !user.password) {
+      throw new UnauthorizedException('Invalid current password.');
+    }
+
+    const isCurrentPasswordValid = await this.hashProvider.comparePassword(
+      currentPassword,
+      user.password,
+    );
+
+    if (!isCurrentPasswordValid) {
+      throw new UnauthorizedException('Invalid current password.');
+    }
+
+    const isSamePassword = await this.hashProvider.comparePassword(
+      newPassword,
+      user.password,
+    );
+
+    if (isSamePassword) {
+      throw new BadRequestException(
+        'New password must be different from your current password.',
+      );
+    }
+
+    user.password = await this.hashProvider.hashPassword(newPassword);
+
+    // Invalidate any outstanding password reset link.
+    user.password_reset_token_hash = null;
+    user.password_reset_token_expires_at = null;
+
+    await repo.save(user);
+
+    return {
+      success: true,
+      message: 'Password changed successfully.',
     };
   }
 }

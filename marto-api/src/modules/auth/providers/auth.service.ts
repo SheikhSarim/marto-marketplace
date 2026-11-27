@@ -160,4 +160,22 @@ export class AuthService {
   async verifyEmailChange(token: string) {
     return this.emailChangeProvider.verifyEmailChange(token);
   }
+
+  // =========================
+  // CHANGE PASSWORD
+  // =========================
+  
+  async changePassword(
+    userId: string,
+    role: UserRole,
+    currentPassword: string,
+    newPassword: string,
+  ) {
+    return this.customerPasswordProvider.changePassword(
+      userId,
+      role,
+      currentPassword,
+      newPassword,
+    );
+  }
 }

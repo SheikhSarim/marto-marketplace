@@ -13,6 +13,7 @@ import {
   UploadedFiles,
   BadRequestException,
   Query,
+  Patch,
 } from '@nestjs/common';
 
 import type { Request, Response } from 'express';
@@ -32,6 +33,7 @@ import {
   ApiUnauthorizedResponse,
   ApiConflictResponse,
   ApiBadRequestResponse,
+  ApiForbiddenResponse,
 } from '@nestjs/swagger';
 
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
@@ -52,6 +54,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 
 import { RequestEmailChangeDto } from './dto/request-email-change.dto';
 import { VerifyEmailChangeDto } from './dto/verify-email-change.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -466,5 +469,49 @@ export class AuthController {
   })
   async verifyEmailChange(@Body() dto: VerifyEmailChangeDto) {
     return this.authService.verifyEmailChange(dto.token);
+  }
+  // ==========================================
+  // CHANGE PASSWORD
+  // ==========================================
+
+  @Patch('change-password')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Change current password',
+    description:
+      'Allows authenticated customers and sellers to change their password after verifying their current password.',
+  })
+  @ApiBody({ type: ChangePasswordDto })
+  @ApiOkResponse({
+    description: 'Password changed successfully.',
+    schema: {
+      example: {
+        success: true,
+        message: 'Password changed successfully.',
+      },
+    },
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Current password is incorrect or user is unauthenticated.',
+  })
+  @ApiForbiddenResponse({
+    description: 'Super Admin is not allowed to use this endpoint.',
+  })
+  @ApiBadRequestResponse({
+    description: 'New password is invalid or same as current password.',
+  })
+  async changePassword(@Req() request: any, @Body() dto: ChangePasswordDto) {
+    if (!request.user) {
+      throw new UnauthorizedException('Unauthorized');
+    }
+
+    return this.authService.changePassword(
+      request.user.id,
+      request.user.role,
+      dto.current_password,
+      dto.new_password,
+    );
   }
 }
