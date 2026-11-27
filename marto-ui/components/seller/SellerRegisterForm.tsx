@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
@@ -44,7 +44,6 @@ export function SellerRegisterForm({ onSuccess }: SellerRegisterFormProps) {
 
   const {
     register,
-    control,
     handleSubmit,
     watch,
     formState: { errors, isSubmitting },
@@ -92,18 +91,6 @@ export function SellerRegisterForm({ onSuccess }: SellerRegisterFormProps) {
       return;
     }
     setter(file);
-  };
-
-  const formatCNIC = (value: string) => {
-    const digits = value.replace(/\D/g, "").slice(0, 13);
-
-    if (digits.length <= 5) return digits;
-
-    if (digits.length <= 12) {
-      return `${digits.slice(0, 5)}-${digits.slice(5)}`;
-    }
-
-    return `${digits.slice(0, 5)}-${digits.slice(5, 12)}-${digits.slice(12)}`;
   };
 
   const onSubmit = async (values: SellerRegisterValues) => {
@@ -324,23 +311,7 @@ export function SellerRegisterForm({ onSuccess }: SellerRegisterFormProps) {
             <label className="text-xs font-semibold text-on-surface">
               CNIC (13 digits) *
             </label>
-
-            <Controller
-              name="cnic"
-              control={control}
-              render={({ field }) => (
-                <Input
-                  {...field}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={15}
-                  placeholder="42101-1234567-1"
-                  value={field.value || ""}
-                  onChange={(e) => field.onChange(formatCNIC(e.target.value))}
-                />
-              )}
-            />
-
+            <Input {...register("cnic")} placeholder="42101-1234567-1" />
             {errors.cnic && (
               <p className="text-xs text-status-danger">
                 {errors.cnic.message}
