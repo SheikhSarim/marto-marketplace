@@ -1,32 +1,40 @@
 // Marto Marketplace - Core Domain Types, Enumerations & OpenAPI DTO Contracts
 
-export type UserRole = 'GUEST' | 'CUSTOMER' | 'SELLER' | 'SUPER_ADMIN';
+export type UserRole = "GUEST" | "CUSTOMER" | "SELLER" | "SUPER_ADMIN";
 
-export type SellerStatus = 'PENDING' | 'APPROVED' | 'DISABLED' | 'REJECTED' | 'REMOVED';
+export type SellerStatus =
+  | "PENDING"
+  | "APPROVED"
+  | "DISABLED"
+  | "REJECTED"
+  | "REMOVED";
 
-export type ShopStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'DISABLED';
+export type ShopStatus = "ACTIVE" | "INACTIVE" | "SUSPENDED" | "DISABLED";
 
-export type ProductStatus = 'ACTIVE' | 'DISABLED' | 'OUT_OF_STOCK' | 'REMOVED';
+export type ProductStatus = "ACTIVE" | "DISABLED" | "OUT_OF_STOCK" | "REMOVED";
 
-export type CategoryStatus = 'ACTIVE' | 'DISABLED' | 'REMOVED';
+export type CategoryStatus = "ACTIVE" | "DISABLED" | "REMOVED";
 
 export type OrderStatus =
-  | 'PENDING'
-  | 'CONFIRMED'
-  | 'PROCESSING'
-  | 'SHIPPED'
-  | 'DELIVERED'
-  | 'CANCELLED';
+  | "PENDING"
+  | "CONFIRMED"
+  | "PROCESSING"
+  | "SHIPPED"
+  | "DELIVERED"
+  | "CANCELLED";
 
-export type PaymentMethod = 'COD' | 'ONLINE';
+export type PaymentMethod = "COD" | "ONLINE";
 
-export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED';
+export type PaymentStatus = "PENDING" | "PAID" | "FAILED" | "REFUNDED";
 
-export const ALLOWED_ORDER_STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
-  PENDING: ['CONFIRMED', 'CANCELLED'],
-  CONFIRMED: ['PROCESSING', 'CANCELLED'],
-  PROCESSING: ['SHIPPED', 'CANCELLED'],
-  SHIPPED: ['DELIVERED'],
+export const ALLOWED_ORDER_STATUS_TRANSITIONS: Record<
+  OrderStatus,
+  OrderStatus[]
+> = {
+  PENDING: ["CONFIRMED", "CANCELLED"],
+  CONFIRMED: ["PROCESSING", "CANCELLED"],
+  PROCESSING: ["SHIPPED", "CANCELLED"],
+  SHIPPED: ["DELIVERED"],
   DELIVERED: [],
   CANCELLED: [],
 };
@@ -36,10 +44,52 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
+  status?: string;
   phone?: string;
   avatarUrl?: string;
   emailVerified?: boolean;
   createdAt: string;
+  updatedAt?: string;
+}
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  status?: string;
+  profile_pic?: string | null;
+  avatarUrl?: string;
+  phone?: string | null;
+  is_email_verified: boolean;
+  created_at?: string;
+  createdAt: string;
+  updated_at?: string;
+  updatedAt: string;
+}
+
+export interface UpdateProfileDto {
+  name?: string;
+  phone?: string;
+}
+
+export interface UpdateAvatarResponse {
+  message: string;
+  profile_pic: string;
+}
+
+export interface RequestEmailChangeDto {
+  current_password: string;
+  new_email: string;
+}
+
+export interface VerifyEmailChangeDto {
+  token: string;
+}
+
+export interface ChangePasswordDto {
+  current_password: string;
+  new_password: string;
 }
 
 export interface Address {
@@ -61,7 +111,13 @@ export interface OpeningHourDay {
 }
 
 export type ShopOpeningHours = Record<
-  'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday',
+  | "monday"
+  | "tuesday"
+  | "wednesday"
+  | "thursday"
+  | "friday"
+  | "saturday"
+  | "sunday",
   OpeningHourDay
 >;
 
@@ -72,6 +128,8 @@ export interface Shop {
   slug: string;
   description: string;
   logo?: string;
+  logo_url?: string | null;
+  cover_image_url?: string | null;
   coverImage?: string;
   cover_image?: string;
   category: string;
@@ -145,7 +203,7 @@ export interface Category {
   parent?: { id: string; name: string; slug?: string } | null;
   children?: Category[];
   sort_order?: number;
-  scope?: 'PLATFORM' | 'SELLER';
+  scope?: "PLATFORM" | "SELLER";
   status: CategoryStatus;
   productCount?: number;
   products_count?: number;
@@ -153,9 +211,9 @@ export interface Category {
   updated_at?: string;
 }
 
-export type DiscountType = 'NONE' | 'PERCENTAGE' | 'FIXED';
+export type DiscountType = "NONE" | "PERCENTAGE" | "FIXED";
 
-export type ProductAvailability = 'IN_STOCK' | 'OUT_OF_STOCK';
+export type ProductAvailability = "IN_STOCK" | "OUT_OF_STOCK";
 
 export interface ProductImage {
   id: string;
@@ -264,7 +322,7 @@ export interface AuditLog {
   actorEmail: string;
   actorRole: UserRole;
   action: string;
-  targetType: 'SELLER' | 'SHOP' | 'PRODUCT' | 'CATEGORY' | 'ORDER' | 'SETTINGS';
+  targetType: "SELLER" | "SHOP" | "PRODUCT" | "CATEGORY" | "ORDER" | "SETTINGS";
   targetId: string;
   details: string;
   timestamp: string;
@@ -330,7 +388,7 @@ export interface NotificationItem {
   message: string;
   read: boolean;
   createdAt: string;
-  type: 'ORDER' | 'SELLER' | 'PRODUCT' | 'SYSTEM';
+  type: "ORDER" | "SELLER" | "PRODUCT" | "SYSTEM";
 }
 
 export interface MarketplaceShopCategory {
@@ -373,7 +431,7 @@ export interface SellerCategory {
   parent?: { id: string; name: string; slug?: string } | null;
   children?: SellerCategory[];
   sort_order: number;
-  scope?: 'PLATFORM' | 'SELLER';
+  scope?: "PLATFORM" | "SELLER";
   status: CategoryStatus;
   disabled_by_admin?: boolean;
   products_count?: number;
@@ -401,7 +459,7 @@ export interface UpdateCategoryDto {
 }
 
 export interface UpdateCategoryStatusDto {
-  status: 'ACTIVE' | 'DISABLED';
+  status: "ACTIVE" | "DISABLED";
 }
 
 export type CreateSellerCategoryDto = CreateCategoryDto;
@@ -429,7 +487,7 @@ export interface CreateProductDto {
 export type UpdateProductDto = Partial<CreateProductDto>;
 
 export interface UpdateProductStatusDto {
-  status: 'ACTIVE' | 'DISABLED';
+  status: "ACTIVE" | "DISABLED";
 }
 
 export interface AdminShopRecord {

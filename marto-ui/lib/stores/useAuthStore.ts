@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { User, UserRole } from '@/types';
+import { User, UserProfile, UserRole } from '@/types';
 import {
   apiClient,
   setApiAccessToken,
@@ -80,18 +80,28 @@ export function normalizeUser(raw: unknown): User | null {
     name,
     email,
     role,
+    status: typeof candidate.status === 'string' ? candidate.status : undefined,
     phone: typeof candidate.phone === 'string' ? candidate.phone : undefined,
     avatarUrl:
+      (typeof candidate.profile_pic === 'string' && candidate.profile_pic) ||
       (typeof candidate.avatarUrl === 'string' && candidate.avatarUrl) ||
       (typeof candidate.avatar === 'string' && candidate.avatar) ||
       undefined,
-    emailVerified: Boolean(candidate.emailVerified ?? candidate.email_verified ?? true),
+    emailVerified: Boolean(
+      candidate.is_email_verified ?? candidate.emailVerified ?? candidate.email_verified ?? true
+    ),
     createdAt:
       typeof candidate.createdAt === 'string'
         ? candidate.createdAt
         : typeof candidate.created_at === 'string'
         ? candidate.created_at
         : new Date().toISOString(),
+    updatedAt:
+      typeof candidate.updatedAt === 'string'
+        ? candidate.updatedAt
+        : typeof candidate.updated_at === 'string'
+        ? candidate.updated_at
+        : undefined,
   };
 }
 
@@ -145,11 +155,15 @@ interface AuthState {
     token: string;
     password: string;
   }) => Promise<{ success: boolean; message?: string; statusCode?: number }>;
+  verifyEmailChange: (
+    token: string
+  ) => Promise<{ success: boolean; statusCode?: number; message?: string; data?: unknown }>;
   logout: () => Promise<void>;
   refreshSession: () => Promise<boolean>;
   pingServer: () => Promise<boolean>;
   clearError: () => void;
   setUser: (user: User | null) => void;
+  syncProfileToUser: (profile: Partial<UserProfile>) => void;
 }
 
 let inFlightSessionCheck: Promise<User | null> | null = null;
@@ -614,9 +628,61 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
+  verifyEmailChange: async (token) => {
+    try {
+      const response = await authService.verifyEmailChange({ token });
+      const msg =
+        typeof response === 'string' && response.trim()
+          ? response.trim()
+          : response && typeof response === 'object' && typeof (response as Record<string, unknown>).message === 'string'
+          ? String((response as Record<string, unknown>).message)
+          : 'Email address updated successfully.';
+      return {
+        success: true,
+        statusCode: 200,
+        data: response,
+        message: msg,
+      };
+    } catch (err: unknown) {
+      const statusCode = err instanceof ApiError ? err.statusCode : 400;
+      return {
+        success: false,
+        statusCode,
+        message:
+          err instanceof Error
+            ? err.message
+            : 'Invalid or expired verification token.',
+      };
+    }
+  },
+
   clearError: () => set({ error: null }),
   setUser: (user) => {
     syncRoleCookie(user ? user.role : null);
     set({ user, isAuthenticated: Boolean(user) });
+  },
+  syncProfileToUser: (profile) => {
+    const current = get().user;
+    if (!current) return;
+    const nextAvatar =
+      profile.profile_pic !== undefined
+        ? profile.profile_pic || undefined
+        : profile.avatarUrl !== undefined
+        ? profile.avatarUrl
+        : current.avatarUrl;
+    const updated: User = {
+      ...current,
+      ...(profile.name ? { name: profile.name } : {}),
+      ...(profile.email ? { email: profile.email } : {}),
+      ...(profile.status ? { status: profile.status } : {}),
+      ...(profile.phone !== undefined ? { phone: profile.phone ?? undefined } : {}),
+      avatarUrl: nextAvatar,
+      emailVerified:
+        profile.is_email_verified !== undefined
+          ? profile.is_email_verified
+          : current.emailVerified,
+      updatedAt: profile.updatedAt || profile.updated_at || current.updatedAt,
+    };
+    set({ user: updated });
   },
 }));

@@ -120,13 +120,13 @@ export const SELLER_NAV_ITEMS: DashboardNavItem[] = [
     href: '/seller/revenue',
     roles: ['SELLER'],
   },
-  {
-    id: 'settings',
-    label: 'Settings',
-    icon: Settings,
-    href: '/seller/settings',
-    roles: ['SELLER'],
-  },
+  // {
+  //   id: 'settings',
+  //   label: 'Profile & Settings',
+  //   icon: Settings,
+  //   href: '/seller/settings',
+  //   roles: ['SELLER'],
+  // },
 ];
 
 export const CUSTOMER_NAV_ITEMS: DashboardNavItem[] = [

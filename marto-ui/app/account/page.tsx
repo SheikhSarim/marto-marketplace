@@ -7,6 +7,7 @@ import { RoleGuard } from '@/components/auth/RoleGuard';
 import { StorefrontShell } from '@/components/storefront/StorefrontShell';
 import { useAuthStore } from '@/lib/stores/useAuthStore';
 import { Badge } from '@/components/ui/badge';
+import { SafeImage } from '@/components/ui/SafeImage';
 
 export default function CustomerAccountPage() {
   const { user } = useAuthStore();
@@ -14,7 +15,7 @@ export default function CustomerAccountPage() {
   const cards = [
     {
       title: 'Profile & Security',
-      description: 'Inspect your verified identity details and account status.',
+      description: 'Update your profile photo, name, phone number, and verified email.',
       href: '/account/profile',
       icon: User,
     },
@@ -44,8 +45,12 @@ export default function CustomerAccountPage() {
         <div className="marto-container py-8 sm:py-10 space-y-6">
           <div className="rounded-3xl border border-border-slate bg-surface-card p-6 sm:p-8 shadow-[var(--shadow-level-1)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 text-primary font-display font-bold text-xl flex items-center justify-center shrink-0">
-                {user?.name?.charAt(0).toUpperCase() || 'C'}
+              <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 text-primary font-display font-bold text-xl flex items-center justify-center shrink-0 overflow-hidden relative">
+                {user?.avatarUrl ? (
+                  <SafeImage src={user.avatarUrl} alt={user.name} fill sizes="56px" />
+                ) : (
+                  <span>{user?.name?.charAt(0).toUpperCase() || 'C'}</span>
+                )}
               </div>
               <div>
                 <h1 className="font-display font-bold text-2xl text-on-surface">
