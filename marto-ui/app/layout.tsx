@@ -1,31 +1,42 @@
-import type { Metadata } from 'next';
-import './globals.css';
-import { Providers } from './providers';
+import type { Metadata } from "next";
+import "./globals.css";
+import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: 'Marto Marketplace | Curated Multi-Vendor Commerce in Pakistan',
+  title: "Marto Marketplace | Curated Multi-Vendor Commerce in Pakistan",
   description:
-    'Discover verified Pakistani merchants and authentic products across Marto Marketplace with single-seller order dispatch and transparent PKR pricing.',
+    "Discover verified Pakistani merchants and authentic products across Marto Marketplace with single-seller order dispatch and transparent PKR pricing.",
+  icons: {
+    icon: "/favicon.ico",
+  },
   openGraph: {
-    title: 'Marto Marketplace | Curated Multi-Vendor Commerce in Pakistan',
+    title: "Marto Marketplace | Curated Multi-Vendor Commerce in Pakistan",
     description:
-      'Discover verified Pakistani merchants and authentic products across Marto Marketplace with single-seller order dispatch and transparent PKR pricing.',
-    type: 'website',
+      "Discover verified Pakistani merchants and authentic products across Marto Marketplace with single-seller order dispatch and transparent PKR pricing.",
+    type: "website",
   },
   twitter: {
-    card: 'summary_large_image',
-    title: 'Marto Marketplace | Curated Multi-Vendor Commerce in Pakistan',
+    card: "summary_large_image",
+    title: "Marto Marketplace | Curated Multi-Vendor Commerce in Pakistan",
     description:
-      'Discover verified Pakistani merchants and authentic products across Marto Marketplace with single-seller order dispatch and transparent PKR pricing.',
+      "Discover verified Pakistani merchants and authentic products across Marto Marketplace with single-seller order dispatch and transparent PKR pricing.",
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
         <link
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
